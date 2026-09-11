@@ -1,0 +1,35 @@
+# Dependencies & build output
+node_modules/
+dist/
+
+# Secrets — never commit (Section 07 / ADR-005)
+.env
+.env.*
+*.pem
+*.key
+
+# Database backups & production exports — never commit
+*.sqlite
+*.sqlite3
+couple-finance-backup-*.json
+*-export.json
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+.next/
+build/
+
+# Regenerable local tooling indexes
+.codegraph/
+
+# Agent/workspace internals — local only, never committed (user policy)
+.agents/
+.cline/
+.clinerules/
+AGENTS.md
+SOUL.md
+skills-lock.json
+tasks/

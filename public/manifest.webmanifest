@@ -1,0 +1,15 @@
+{
+  "name": "Couple Finance Control",
+  "short_name": "Couple Finance",
+  "description": "Local-first household finance: cash position, bills, cards, recurring expenses and loans.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F1F4EE",
+  "theme_color": "#0A2115",
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icons/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

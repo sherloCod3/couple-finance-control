@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Instrument Sans", sans-serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", monospace;
+
+  --color-paper: #f1f4ee;
+  --color-surface: #fbfcf9;
+  --color-raise: #fefefc;
+  --color-line: #dce4d6;
+  --color-linesoft: #e8eee3;
+
+  --color-ink: #17251c;
+  --color-inksoft: #4c5b50;
+  --color-inkfaint: #7d8b7f;
+
+  --color-pine-50: #edf4ee;
+  --color-pine-100: #dce9de;
+  --color-pine-200: #bcd5c2;
+  --color-pine-300: #8fba9b;
+  --color-pine-400: #55966c;
+  --color-pine-500: #2c7d4f;
+  --color-pine-600: #1d6b41;
+  --color-pine-700: #175734;
+  --color-pine-800: #123f27;
+  --color-pine-900: #0e2e1d;
+  --color-pine-950: #0a2115;
+
+  --color-gold-700: #8f6114;
+  --color-gold-600: #b77f22;
+  --color-gold-100: #f5ebd3;
+
+  --color-rust-700: #93301f;
+  --color-rust-600: #bc4331;
+  --color-rust-100: #f8e6e0;
+
+  --color-steel-700: #274c6e;
+  --color-steel-600: #38658f;
+  --color-steel-100: #e4ecf3;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01";
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ---- ambient ledger texture ------------------------------------------ */
+.ledger-sheet {
+  background-image:
+    linear-gradient(90deg, transparent 0, transparent 52px, rgba(188, 67, 49, 0.16) 52px, rgba(188, 67, 49, 0.16) 53px, transparent 53px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 30px, rgba(23, 87, 52, 0.06) 30px, rgba(23, 87, 52, 0.06) 31px);
+}
+.page-bg {
+  background-image:
+    radial-gradient(900px 420px at 85% -8%, rgba(44, 125, 79, 0.09), transparent 60%),
+    radial-gradient(700px 380px at -10% 100%, rgba(183, 127, 34, 0.07), transparent 55%);
+}
+
+/* ---- motion ------------------------------------------------------------ */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.975); }
+  to { opacity: 1; transform: none; }
+}
+.pop-in { animation: pop-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in { animation: fade-in 0.2s ease both; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.toast-in { animation: toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-linesoft) 25%, #f2f6ef 50%, var(--color-linesoft) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 6px;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+
+.donut-seg {
+  transition: stroke-dasharray 0.9s cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bar-anim {
+  transition: height 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---- controls ----------------------------------------------------------- */
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+:focus-visible {
+  outline: 2px solid var(--color-pine-500);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 8px; border: 3px solid var(--color-paper); }
+::-webkit-scrollbar-track { background: transparent; }
+
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .pop-in, .fade-in, .toast-in { animation: none; }
+  .bar-anim, .donut-seg { transition: none; }
+}
