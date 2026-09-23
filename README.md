@@ -51,15 +51,21 @@ All financial math lives in `domain/services` and is consumed by `application/`
 
 ## Documentation
 
+- `docs/requirements.md` — **requirements baseline**: FIN-01…FIN-11 acceptance criteria,
+  each traced to its implementation and its test.
 - `docs/domain/01-invariants.md` — the "cannot be broken" rules quick-reference.
 - `docs/domain/02-transfer-two-leg-modeling.md` — transfer semantics decision.
 - `docs/domain/03-migrations-and-backup.md` — schema migration & backup strategy.
 - `docs/security.md` — security review & public-repository sanitization checklist.
-- `docs/adr/001…010` — Architecture Decision Records.
+- `docs/adr/README.md` — index of ADR-001…010 (one architectural decision each).
+
+Older comments in `src/` cite a "Section NN" from a baseline document that is not in the
+repository. Those citations still resolve — see the legacy section map at the end of
+`docs/requirements.md`.
 
 ## Tests
 
-Vitest suites live next to the code (`npx vitest run`):
+Vitest suites live next to the code (`npm test`):
 
 - **Domain** — `Money` integer math, transaction classification, transfer neutrality,
   forecasts, card statement booking, loan schedules, `FinancialPosition`.
@@ -91,10 +97,69 @@ per locale via `Intl`.
 
 ```bash
 npm install
-npm run dev        # local development
-npm run build      # production PWA build (dist/)
-npx vitest run     # full test suite (domain, finance, persistence, offline, PWA)
+npm run dev             # local development
+npm run build           # production PWA build (dist/)
+npm run preview         # serve dist/ locally to check the built PWA
+npm test                # full test suite (domain, finance, persistence, offline, PWA)
+npm run typecheck       # tsc --noEmit over src/ and test/
+npm run lint            # ESLint (React hooks + TypeScript rules)
+npm run verify:offline  # end-to-end: cold offline start in headless Chrome
 ```
+
+CI (`.github/workflows/ci.yml`) runs typecheck → lint → test → build on every push to
+`main` and every pull request, and fails if the build leaves an unresolved service-worker
+placeholder in `dist/sw.js`.
+
+`npm run verify:offline` is the strongest check of the app's core promise: it serves
+`dist/`, waits for the service worker to install, cuts the network, reloads, and asserts
+the shell still renders from cache. It needs a local Chrome/Chromium (override with
+`CHROME_PATH`) so it is **not** in CI — the static equivalents live in
+`test/pwa-assets.test.ts`.
+
+Prettier is configured (`.prettierrc.json`, `npm run format`) but is **not** enforced in
+CI: the codebase predates the config and has not been bulk-reformatted, so running it
+produces a repo-wide whitespace diff. Apply it to files you are already touching.
+
+## Generated assets
+
+Two committed asset sets are produced by scripts rather than by hand. Both are
+deterministic and need no dependencies; regenerate only when the source artwork or the
+font families change.
+
+```bash
+npm run icons   # public/icons/*.png from public/icons/icon.svg
+npm run fonts   # src/assets/fonts/*.woff2 + public/fonts/licenses/*.txt (needs network)
+```
+
+- **Icons** — `scripts/make-icons.mjs` rasterises the SVG into the 192/512 icons, a
+  `maskable` variant with the artwork scaled inside the safe zone, and a 180×180
+  `apple-touch-icon` (iOS ignores SVG touch icons). See `public/icons/README.md`.
+- **Fonts** — `scripts/fetch-fonts.mjs` vendors the three UI families as `woff2` so the
+  app makes no third-party request. See `public/fonts/README.md`.
+
+## Deploying
+
+`npm run build` produces a self-contained static site in `dist/` — no server, no API, no
+environment variables. Any static host works.
+
+`vite.config.js` sets `base: "./"`, so the **same build** runs either at a domain root or
+under a sub-path. Nothing has to change between the two — upload `dist/` as-is:
+
+- **Domain root** (Netlify, Vercel, Cloudflare Pages, nginx): publish `dist/`.
+- **Sub-path** (a GitHub Pages project site such as
+  `https://<user>.github.io/couple-finance-control/`): publish `dist/` at that path. The
+  manifest (`start_url: "./"`, `scope: "./"`) and the service worker (registered as
+  `./sw.js`) both resolve relatively, so the app stays installable and offline-capable.
+
+Two hosting notes:
+
+- Serve over **HTTPS** (or `localhost`). Service workers need a secure context, so the
+  offline shell and installability only activate there.
+- Do **not** add a catch-all SPA rewrite. Navigation is in-app state rather than URL
+  routing, so there are no deep links to fall back to.
+
+Because the app is local-first, the host only ever serves static files. It never sees
+household data, which stays in the browser's IndexedDB.
 
 On first run the app seeds a **clearly fictional** demo household ("Demo Household",
 Ana & Bruno, `demo@example.com`, card `••4321`) generated relative to today's date, so the

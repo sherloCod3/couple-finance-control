@@ -1,6 +1,6 @@
 # Transfer modeling — the two-leg approach
 
-**Status:** Decided (resolves the open FIN-04 question in the v2 baseline).
+**Status:** Decided (resolves FIN-04 in `docs/requirements.md`).
 
 ## Decision
 
@@ -17,7 +17,7 @@ account and one `INCOME` on the destination account — sharing a `transferGroup
    transfers (future-dated legs), or cross-household splits (legs in different
    households) are expressible without rewriting the math.
 3. **Net worth is correct by construction.** The two legs always sum to zero, so a
-   transfer can never artificially inflate or shrink household wealth (Section 04).
+   transfer can never artificially inflate or shrink household wealth (FIN-04).
 
 ## Consequences
 

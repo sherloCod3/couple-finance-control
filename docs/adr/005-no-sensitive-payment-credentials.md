@@ -14,4 +14,4 @@ financial organization needs: institution, nickname, type, **last four digits**,
 
 ## Consequences
 - The UI enforces last-four-only inputs for cards and accounts.
-- Public fixtures/documentation use fictional data only (Section 07).
+- Public fixtures/documentation use fictional data only (`docs/requirements.md` NFR-03).

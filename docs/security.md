@@ -1,6 +1,6 @@
 # Security Review & Repository Sanitization
 
-Performed against baseline Section 07 and ADR-005. Re-run this checklist before
+Performed against `docs/requirements.md` NFR-03 and ADR-005. Re-run this checklist before
 every public release.
 
 ## What was reviewed
@@ -14,12 +14,12 @@ every public release.
       tokens exist in source (there are no network calls at all — the app is
       local-first, ADR-002/004).
 - [x] **No internal tooling committed.** Agent/workspace artifacts — `.agents/`,
-      `.cline/`, `.clinerules/`, `AGENTS.md`, `SOUL.md`, `skills-lock.json`,
-      `tasks/` and the `.codegraph/` index — are gitignored and excluded from the
-      repository. Commitment: only product source, tests, docs, PWA shell and
-      repo configs are tracked.
-      History is a single clean commit (`Initial public release`, authored
-      `Alexandre Cavalari <alexandre.cavalari@outlook.com>`); the full
+      `.cline/`, `.clinerules/`, `.workbuddy-ai/`, `AGENTS.md`, `SOUL.md`,
+      `skills-lock.json`, `tasks/` and the `.codegraph/` index — are gitignored
+      and excluded from the repository. Commitment: only product source, tests,
+      docs, PWA shell and repo configs are tracked.
+      Public history starts from the sanitized `Initial public release` commit
+      (authored `Alexandre Cavalari <alexandre.cavalari@outlook.com>`); the full
       pre-release history is preserved only in the local backup
       (`../.sanitize-backup/couple-finance-pre-public.git`).
 - [x] **Fictional demo data only.** The seed (`src/infrastructure/seed.ts`)
@@ -28,7 +28,10 @@ every public release.
       names, CPF/CNPJ, or financial values.
 - [x] **No data leaves the device.** Everything lives in IndexedDB. The service
       worker only caches the app shell (same-origin); no analytics, no
-      telemetry, no third-party requests.
+      telemetry, and **no third-party requests at runtime**. The three UI font
+      families are vendored as `woff2` into `src/assets/fonts/` (bundled and
+      content-hashed by Vite) instead of being fetched from a CDN, so no external
+      host appears in the request path at all — see `public/fonts/README.md`.
 - [x] **Input boundaries.** Amounts enter the domain exclusively through
       `Money.fromDecimal` (rounded to integer cents) or integer-cent fields;
       float math is impossible inside the domain (ADR-010).

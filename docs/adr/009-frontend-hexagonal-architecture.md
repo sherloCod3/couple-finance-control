@@ -15,7 +15,8 @@ src/
 ├── domain/           # Pure TS. No React. No Dexie.
 │   ├── models/       # Entities + Money value object
 │   ├── services/     # Financial rules & calculations
-│   └── types/        # Branded id types
+│   ├── utils/        # Date helpers (pure)
+│   └── types.ts      # Branded id types
 ├── application/      # Use cases and read-side view-model queries
 ├── infrastructure/   # Dexie setup, row↔domain mappers, demo seed
 └── presentation/     # React components, pages, UI hooks
