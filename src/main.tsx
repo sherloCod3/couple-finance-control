@@ -1,4 +1,7 @@
 import ReactDOM from "react-dom/client";
+// Vendored UI fonts first, so the @font-face declarations are in the bundle and
+// content-hashed by Vite (no third-party request, typography works offline).
+import "./assets/fonts/fonts.css";
 import "./index.css";
 import App from "./App";
 
