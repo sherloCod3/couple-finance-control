@@ -33,9 +33,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
-
+      # Build BEFORE test. `test/pwa-assets.test.ts` asserts properties of the
+      # built output — that every asset index.html loads made it into the
+      # service worker's precache list. Those assertions skip when `dist/` is
+      # absent, so running tests first on a fresh checkout silently skipped the
+      # only automated check of the cold-offline-start contract.
       - name: Build
         run: npm run build
 
@@ -46,3 +48,6 @@ jobs:
             exit 1
           fi
           echo "Precache manifest injected."
+
+      - name: Test
+        run: npm test

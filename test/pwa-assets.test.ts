@@ -114,7 +114,14 @@ describe("built shell is complete enough for a cold offline start", () => {
   const dist = join(root, "dist");
   const swPath = join(dist, "sw.js");
 
-  it.skipIf(!existsSync(swPath))("every asset index.html loads is in the precache list", () => {
+  // These assertions describe the *built* output, so they can only run after
+  // `npm run build`. Skipping is fine on a developer machine that has not built
+  // yet — but in CI a missing build must be a loud failure, not a silent skip,
+  // or the only automated check of the offline contract would quietly vanish.
+  const buildMissing = !existsSync(swPath);
+  const skip = buildMissing && !process.env.CI;
+
+  it.skipIf(skip)("every asset index.html loads is in the precache list", () => {
     const sw = readFileSync(swPath, "utf8");
     const listMatch = sw.match(/const ASSETS = typeof (\[[\s\S]*?\]) !== "undefined"/);
     expect(listMatch, "could not find the injected ASSETS list in dist/sw.js").toBeTruthy();
@@ -135,7 +142,7 @@ describe("built shell is complete enough for a cold offline start", () => {
     expect(precached.has("./icons/icon-512.png")).toBe(true);
   });
 
-  it.skipIf(!existsSync(swPath))("no build-time placeholder survives the build", () => {
+  it.skipIf(skip)("no build-time placeholder survives the build", () => {
     const sw = readFileSync(swPath, "utf8");
     expect(sw).not.toContain("__CFC_ASSETS__");
     expect(sw).not.toContain("__CFC_BUILD__");
