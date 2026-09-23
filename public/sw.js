@@ -1,15 +1,32 @@
 /* Couple Finance Control — offline shell (FIN-01).
    All data lives in IndexedDB (Dexie); this worker only keeps the app
-   shell available with no connectivity. */
-const CACHE = "cfc-shell-v1";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest"];
+   shell available with no connectivity.
+
+   BUILD_ID and ASSETS are injected at build time by the `cfc-pwa-precache`
+   plugin in vite.config.js: ASSETS becomes the list of hashed build outputs
+   (JS, CSS, fonts, icons) and BUILD_ID a hash of that list, so a new build
+   always gets a fresh cache. The `typeof` guards keep this file valid if it is
+   ever served straight out of public/ without the injection step. */
+const BUILD_ID = typeof __CFC_BUILD__ !== "undefined" ? __CFC_BUILD__ : "dev";
+const ASSETS = typeof __CFC_ASSETS__ !== "undefined" ? __CFC_ASSETS__ : [];
+
+const CACHE = "cfc-shell-" + BUILD_ID;
+const SHELL = ["./", "./index.html", "./manifest.webmanifest"].concat(ASSETS);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(async (cache) => {
+      // Precache the shell and every hashed build asset. Entries are added
+      // individually so one stale path cannot abort the whole install.
+      await Promise.all(
+        SHELL.map((url) =>
+          cache.add(url).catch(() => {
+            /* an unavailable optional asset must not break install */
+          })
+        )
+      );
+      await self.skipWaiting();
+    })
   );
 });
 

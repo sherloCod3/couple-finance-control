@@ -1,0 +1,48 @@
+name: CI
+
+# Every gate that must stay green is enforced here. Before this workflow existed
+# the three gates were green only on the author's machine.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: typecheck · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify the PWA precache manifest was injected
+        run: |
+          if grep -q "__CFC_ASSETS__" dist/sw.js; then
+            echo "::error::dist/sw.js still contains the precache placeholder"
+            exit 1
+          fi
+          echo "Precache manifest injected."
