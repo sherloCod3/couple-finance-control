@@ -5,11 +5,7 @@
  * Domain rules are enforced here and in domain/services — never in the UI.
  */
 import { db } from "../infrastructure/db";
-import type {
-  CardPurchaseRow,
-  LoanRow,
-  TransactionRow,
-} from "../infrastructure/mappers";
+import type { CardPurchaseRow, TransactionRow } from "../infrastructure/mappers";
 import { toCard, toLoan, toLoanPayment, toPurchase, toTransaction } from "../infrastructure/mappers";
 import { newId } from "../domain/types";
 import type { TransactionId, TransferGroupId } from "../domain/types";

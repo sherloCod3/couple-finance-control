@@ -79,33 +79,31 @@ export function Donut({ slices, totalCents }: { slices: DonutSlice[]; totalCents
   }, []);
   const R = 46;
   const C = 2 * Math.PI * R;
-  let acc = 0;
   const total = Math.max(1, totalCents);
+  // Arc lengths and cumulative offsets are derived up front. Building them with
+  // a running accumulator inside the render map would mutate across renders.
+  const lens = slices.map((s) => (s.cents / total) * C);
+  const offsets = lens.map((_, i) => lens.slice(0, i).reduce((sum, l) => sum + l, 0));
   return (
     <svg viewBox="0 0 120 120" className="w-full max-w-[184px]">
       <circle cx="60" cy="60" r={R} fill="none" stroke="var(--color-linesoft)" strokeWidth="15" />
       <g transform="rotate(-90 60 60)">
-        {slices.map((s) => {
-          const len = (s.cents / total) * C;
-          const el = (
-            <circle
-              key={s.id ?? s.name}
-              cx="60"
-              cy="60"
-              r={R}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="15"
-              className="donut-seg"
-              strokeDasharray={`${ready ? len : 0} ${C}`}
-              strokeDashoffset={-acc}
-            >
-              <title>{`${s.name}: ${fmtCents(s.cents)}`}</title>
-            </circle>
-          );
-          acc += len;
-          return el;
-        })}
+        {slices.map((s, i) => (
+          <circle
+            key={s.id ?? s.name}
+            cx="60"
+            cy="60"
+            r={R}
+            fill="none"
+            stroke={s.color}
+            strokeWidth="15"
+            className="donut-seg"
+            strokeDasharray={`${ready ? lens[i] : 0} ${C}`}
+            strokeDashoffset={-offsets[i]}
+          >
+            <title>{`${s.name}: ${fmtCents(s.cents)}`}</title>
+          </circle>
+        ))}
       </g>
       <text
         x="60"

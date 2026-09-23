@@ -438,16 +438,23 @@ const detectLang = (): Lang =>
     ? "pt-BR"
     : "en";
 
+/** The persisted choice when present, otherwise the browser preference. */
+const initialLang = (): Lang => {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved === "en" || saved === "pt-BR") return saved;
+  } catch {
+    /* private mode */
+  }
+  return detectLang();
+};
+
+// Resolve the Intl locale at module evaluation, i.e. before the first paint.
+// Writing it during LangProvider's render would be a side effect in render.
+uiLocale = initialLang() === "pt-BR" ? "pt-BR" : "en-US";
+
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>(() => {
-    try {
-      const saved = localStorage.getItem(LS_KEY);
-      if (saved === "en" || saved === "pt-BR") return saved;
-    } catch {
-      /* private mode */
-    }
-    return detectLang();
-  });
+  const [lang, setLang] = useState<Lang>(initialLang);
 
   useEffect(() => {
     uiLocale = lang === "pt-BR" ? "pt-BR" : "en-US";
@@ -458,9 +465,6 @@ export function LangProvider({ children }: { children: ReactNode }) {
     }
     document.documentElement.lang = lang;
   }, [lang]);
-
-  // set once before first paint as well
-  uiLocale = lang === "pt-BR" ? "pt-BR" : "en-US";
 
   const value = useMemo(() => ({ lang, setLang, t: dicts[lang] }), [lang]);
   return <LangCtx.Provider value={value}>{children}</LangCtx.Provider>;

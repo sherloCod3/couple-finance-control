@@ -54,6 +54,34 @@ const UploadIcon = ({ size = 15 }: IconProps) => (
   </svg>
 );
 
+/** Declared at module scope: a component created inside render loses state on
+ *  every pass and remounts its subtree (see react-hooks/static-components). */
+function LangBtn({
+  value,
+  label,
+  current,
+  onSelect,
+}: {
+  value: Lang;
+  label: string;
+  current: Lang;
+  onSelect: (lang: Lang) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(value)}
+      aria-pressed={current === value}
+      className={cls(
+        "num rounded-md px-2 py-1 text-[11px] font-bold transition-colors",
+        current === value ? "bg-pine-700 text-pine-50" : "text-pine-300 hover:bg-pine-900 hover:text-pine-100"
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
 function RemindersBell({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useT();
   const dash = useLiveQuery(() => getDashboard(), []);
@@ -205,20 +233,6 @@ function Shell() {
     }
   };
 
-  const LangBtn = ({ value, label }: { value: Lang; label: string }) => (
-    <button
-      type="button"
-      onClick={() => setLang(value)}
-      aria-pressed={lang === value}
-      className={cls(
-        "num rounded-md px-2 py-1 text-[11px] font-bold transition-colors",
-        lang === value ? "bg-pine-700 text-pine-50" : "text-pine-300 hover:bg-pine-900 hover:text-pine-100"
-      )}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div className="min-h-screen">
       {/* ---------- sidebar (desktop) ---------- */}
@@ -281,8 +295,8 @@ function Shell() {
           <div className="flex items-center justify-between rounded-lg bg-pine-900/60 px-2 py-1.5">
             <span className="px-1 text-[10.5px] font-bold uppercase tracking-wide text-pine-300">{t.shell_lang}</span>
             <div className="flex gap-1">
-              <LangBtn value="en" label="EN" />
-              <LangBtn value="pt-BR" label="PT" />
+              <LangBtn value="en" label="EN" current={lang} onSelect={setLang} />
+              <LangBtn value="pt-BR" label="PT" current={lang} onSelect={setLang} />
             </div>
           </div>
           <div className="flex items-center justify-between gap-2 px-1">

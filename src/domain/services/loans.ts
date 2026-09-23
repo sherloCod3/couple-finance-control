@@ -21,7 +21,7 @@ export const allocateSchedule = (loan: Loan, payments: LoanPayment[]): boolean[]
     .map((item, index) => ({ item, index }))
     .sort((a, b) => (a.item.dueDate < b.item.dueDate ? -1 : 1));
   const flags = new Array<boolean>(loan.schedule.length).fill(false);
-  let paidCents = paidTotal(payments).cents;
+  const paidCents = paidTotal(payments).cents;
   let scheduledCents = 0;
   for (const { item, index } of order) {
     scheduledCents += item.amount.cents;

@@ -29,7 +29,6 @@ import type {
 } from "../domain/models/entities";
 import {
   accountBalance,
-  countsAsExpense,
   expensesByCategory,
   isCardPayment,
   seriesForMonths,
