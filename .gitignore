@@ -29,6 +29,7 @@ build/
 .agents/
 .cline/
 .clinerules/
+.workbuddy-ai/
 AGENTS.md
 SOUL.md
 skills-lock.json
