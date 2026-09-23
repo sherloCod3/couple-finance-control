@@ -1,7 +1,13 @@
-/** FIN-02 accounts + FIN-03 PIX keys (accounts and contacts). */
+/** FIN-02 accounts + FIN-03 PIX keys (accounts and contacts), plus categories. */
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getAccounts, getContacts, type AccountView, type ContactView } from "../../application/queries";
+import {
+  getAccounts,
+  getCategories,
+  getContacts,
+  type AccountView,
+  type ContactView,
+} from "../../application/queries";
 import * as uc from "../../application/useCases";
 import { todayISO } from "../../domain/utils/dates";
 import {
@@ -12,6 +18,8 @@ import {
   Field,
   IKey,
   IPlus,
+  ITag,
+  ITrash,
   IUsers,
   IWallet,
   IconBtn,
@@ -19,6 +27,7 @@ import {
   Reveal,
   Segmented,
   Skeleton,
+  cls,
   fmtCents,
   fmtDate,
   inputCls,
@@ -239,10 +248,21 @@ export default function Accounts() {
   const { t } = useT();
   const accounts = useLiveQuery(() => getAccounts(), []);
   const contacts = useLiveQuery(() => getContacts(), []);
+  const categories = useLiveQuery(() => getCategories(), []);
   const [accountModal, setAccountModal] = useState<{ open: boolean; preset?: AccountView | null }>({ open: false });
   const [keyModal, setKeyModal] = useState(false);
   const [contactName, setContactName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<AccountView | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryKind, setCategoryKind] = useState<"expense" | "income">("expense");
+  const [categoryColor, setCategoryColor] = useState("#2C7D4F");
+  // PIX keys, contacts and categories share a single confirm dialog.
+  const [pendingRemove, setPendingRemove] = useState<
+    | { kind: "key"; id: string; label: string }
+    | { kind: "contact"; id: string; label: string }
+    | { kind: "category"; id: string; label: string }
+    | null
+  >(null);
 
   const total = (accounts ?? []).reduce((a, x) => a + x.balanceCents, 0);
 
@@ -265,7 +285,52 @@ export default function Accounts() {
     }
   };
 
-  if (!accounts || !contacts) {
+  const addCategory = async (): Promise<void> => {
+    try {
+      await uc.addCategory({ name: categoryName, kind: categoryKind, color: categoryColor });
+      setCategoryName("");
+      toast.push("success", t.acct_categoryAdded);
+    } catch (e) {
+      toast.push("error", e instanceof Error ? e.message : t.common_couldNotSave);
+    }
+  };
+
+  const runRemove = async (): Promise<void> => {
+    if (!pendingRemove) return;
+    const { kind, id } = pendingRemove;
+    try {
+      if (kind === "key") {
+        await uc.deletePixKey(id);
+        toast.push("success", t.acct_keyDeleted);
+      } else if (kind === "contact") {
+        await uc.deleteContact(id);
+        toast.push("success", t.acct_contactDeleted);
+      } else {
+        await uc.deleteCategory(id);
+        toast.push("success", t.acct_categoryDeleted);
+      }
+    } catch (e) {
+      toast.push("error", e instanceof Error ? e.message : t.common_couldNotSave);
+    } finally {
+      setPendingRemove(null);
+    }
+  };
+
+  const removeTitle =
+    pendingRemove?.kind === "key"
+      ? t.acct_removeKeyTitle
+      : pendingRemove?.kind === "contact"
+        ? t.acct_removeContactTitle
+        : t.acct_categoryDeleteTitle;
+
+  const removeMessage =
+    pendingRemove?.kind === "key"
+      ? fill(t.acct_removeKeyMsg, { value: pendingRemove.label })
+      : pendingRemove?.kind === "contact"
+        ? fill(t.acct_removeContactMsg, { name: pendingRemove.label })
+        : fill(t.acct_categoryDeleteMsg, { name: pendingRemove?.label ?? "" });
+
+  if (!accounts || !contacts || !categories) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Skeleton className="h-52 rounded-xl" />
@@ -323,6 +388,14 @@ export default function Accounts() {
                       <IconBtn label={t.acct_copy} onClick={() => copy(k.value)} className="p-1">
                         <span className="text-[11px] font-bold">{t.acct_copy}</span>
                       </IconBtn>
+                      <IconBtn
+                        label={t.acct_removeKey}
+                        danger
+                        onClick={() => setPendingRemove({ kind: "key", id: k.id, label: k.value })}
+                        className="p-1"
+                      >
+                        <ITrash size={12} />
+                      </IconBtn>
                     </li>
                   ))}
                 </ul>
@@ -351,7 +424,17 @@ export default function Accounts() {
           <div className="grid gap-3 sm:grid-cols-2">
             {contacts.map((c) => (
               <div key={c.id} className="rounded-xl border border-line bg-surface px-4 py-3 shadow-sm">
-                <p className="text-[13.5px] font-semibold text-ink">{c.name}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[13.5px] font-semibold text-ink">{c.name}</p>
+                  <IconBtn
+                    label={t.acct_removeContact}
+                    danger
+                    onClick={() => setPendingRemove({ kind: "contact", id: c.id, label: c.name })}
+                    className="p-1"
+                  >
+                    <ITrash size={13} />
+                  </IconBtn>
+                </div>
                 {c.keys.length === 0 ? (
                   <p className="mt-1 text-[11.5px] text-inkfaint">{t.acct_noKeys}</p>
                 ) : (
@@ -362,6 +445,14 @@ export default function Accounts() {
                         <span className="num min-w-0 flex-1 truncate text-inksoft">{k.value}</span>
                         <IconBtn label={t.acct_copy} onClick={() => copy(k.value)} className="p-1">
                           <span className="text-[11px] font-bold">{t.acct_copy}</span>
+                        </IconBtn>
+                        <IconBtn
+                          label={t.acct_removeKey}
+                          danger
+                          onClick={() => setPendingRemove({ kind: "key", id: k.id, label: k.value })}
+                          className="p-1"
+                        >
+                          <ITrash size={12} />
                         </IconBtn>
                       </li>
                     ))}
@@ -383,6 +474,73 @@ export default function Accounts() {
         </div>
       </section>
 
+      <section>
+        <header className="mb-3 flex items-center gap-2">
+          <ITag size={16} className="text-pine-600" />
+          <h2 className="font-display text-[16px] font-bold tracking-tight">{t.acct_categoriesTitle}</h2>
+        </header>
+        <p className="mb-3 max-w-[560px] text-[12px] leading-relaxed text-inkfaint">
+          {t.acct_categoriesHint}
+        </p>
+        {categories.length === 0 ? (
+          <p className="text-[12.5px] text-inkfaint">{t.acct_noCategories}</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {categories.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-2.5 shadow-sm"
+              >
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ink">{c.name}</span>
+                <Badge tone={c.kind === "income" ? "ok" : "neutral"}>
+                  {c.kind === "income" ? t.acct_categoryKindIncome : t.acct_categoryKindExpense}
+                </Badge>
+                {c.builtin && <Badge tone="steel">{t.acct_categoryBuiltin}</Badge>}
+                <IconBtn
+                  label={t.common_delete}
+                  danger
+                  onClick={() => setPendingRemove({ kind: "category", id: c.id, label: c.name })}
+                  className="p-1"
+                >
+                  <ITrash size={13} />
+                </IconBtn>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <input
+            className={cls(inputCls, "max-w-[220px]")}
+            placeholder={t.acct_categoryName}
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addCategory()}
+          />
+          <Segmented<"expense" | "income">
+            options={[
+              { value: "expense", label: t.acct_categoryKindExpense },
+              { value: "income", label: t.acct_categoryKindIncome },
+            ]}
+            value={categoryKind}
+            onChange={setCategoryKind}
+          />
+          <label className="flex items-center gap-2 text-[11.5px] font-semibold text-inksoft">
+            {t.acct_categoryColor}
+            <input
+              type="color"
+              aria-label={t.acct_categoryColor}
+              className="h-8 w-10 cursor-pointer rounded border border-line bg-raise"
+              value={categoryColor}
+              onChange={(e) => setCategoryColor(e.target.value)}
+            />
+          </label>
+          <Button variant="soft" onClick={addCategory} disabled={!categoryName.trim()}>
+            {t.common_add}
+          </Button>
+        </div>
+      </section>
+
       <AccountModal open={accountModal.open} onClose={() => setAccountModal({ open: false })} preset={accountModal.preset} />
       <PixKeyModal open={keyModal} onClose={() => setKeyModal(false)} accounts={accounts} contacts={contacts} />
       <Confirm
@@ -401,6 +559,13 @@ export default function Accounts() {
             setPendingDelete(null);
           }
         }}
+      />
+      <Confirm
+        open={pendingRemove !== null}
+        onClose={() => setPendingRemove(null)}
+        onConfirm={runRemove}
+        title={removeTitle}
+        message={removeMessage}
       />
     </div>
   );

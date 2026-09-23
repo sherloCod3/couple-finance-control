@@ -51,6 +51,14 @@ class FinanceDB extends Dexie {
       loans: "id, householdId",
       loanPayments: "id, loanId, date",
     });
+    // v2 — index `cardPurchases.categoryId`. `deleteCategory` guards on "is this
+    // category used by a card purchase?", and that query threw
+    // "KeyPath categoryId on object store cardPurchases is not indexed" because
+    // the key path was never indexed. Additive only: no rows are read or
+    // rewritten, per docs/domain/03-migrations-and-backup.md.
+    this.version(2).stores({
+      cardPurchases: "id, cardId, period, date, categoryId",
+    });
     // First run only: load clearly-fictional demo data (Section 07).
     this.on("populate", () => seedDemoData(this));
   }

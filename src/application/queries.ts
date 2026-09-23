@@ -577,6 +577,20 @@ export async function getLoans(): Promise<LoanView[]> {
   return loanViews(await loadBase());
 }
 
+export async function getCategories(): Promise<CategoryView[]> {
+  const categories = await db.categories.toArray();
+  return categories
+    .map(toCategory)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      kind: c.kind,
+      color: c.color,
+      builtin: c.builtin,
+    }));
+}
+
 export async function getFormMeta(): Promise<FormMeta> {
   const base = await loadBase();
   return {

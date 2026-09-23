@@ -245,3 +245,78 @@ describe("backup / export strategy", () => {
     ).rejects.toThrow(/valid .*date/i);
   });
 });
+
+describe("categories, PIX keys and contacts (FIN-03)", () => {
+  it("adds a category, then refuses to delete one that is in use", async () => {
+    const id = await uc.addCategory({ name: "Pets", kind: "expense", color: "#123456" });
+    const created = await db.categories.get(id);
+    expect(created?.name).toBe("Pets");
+    expect(created?.builtin).toBe(false);
+
+    await uc.createTransaction({
+      type: "EXPENSE",
+      amountCents: 4200,
+      accountId: "a-checking",
+      date: "2025-06-10",
+      description: "Vet",
+      categoryId: id,
+      note: null,
+      createdBy: "m-ana",
+      recurringId: null,
+    });
+    await expect(uc.deleteCategory(id)).rejects.toThrow(/in use/i);
+
+    // "Education" ships with the demo seed but nothing references it.
+    await uc.deleteCategory("c-education");
+    expect(await db.categories.get("c-education")).toBeUndefined();
+  });
+
+  it("rejects a duplicate category name, case-insensitively", async () => {
+    await expect(uc.addCategory({ name: "housing", kind: "expense", color: "#000000" })).rejects.toThrow(
+      /already exists/i
+    );
+  });
+
+  it("removes a PIX key without touching the account", async () => {
+    const before = await db.accounts.get("a-checking");
+    await uc.deletePixKey("pix-2");
+    expect(await db.pixKeys.get("pix-2")).toBeUndefined();
+    // A key is metadata: removing it must never move money.
+    expect((await db.accounts.get("a-checking"))?.openingBalanceCents).toBe(
+      before?.openingBalanceCents
+    );
+  });
+
+  it("refuses to delete a contact that still has PIX keys", async () => {
+    await expect(uc.deleteContact("ct-rafa")).rejects.toThrow(/PIX keys/i);
+    await uc.deletePixKey("pix-3");
+    await uc.deleteContact("ct-rafa");
+    expect(await db.contacts.get("ct-rafa")).toBeUndefined();
+  });
+});
+
+describe("schema migrations (docs/domain/03-migrations-and-backup.md)", () => {
+  it("declares version 2 and indexes cardPurchases.categoryId", () => {
+    expect(db.verno).toBe(2);
+    // deleteCategory guards on "is this category used by a card purchase?", which
+    // is only queryable when the key path is indexed. Without it the guard threw
+    // and no category could ever be deleted.
+    const indexed = db.cardPurchases.schema.indexes.some((i) => i.keyPath === "categoryId");
+    expect(indexed).toBe(true);
+  });
+
+  it("keeps every queried key path indexed", () => {
+    // Mirrors the .where(...) calls in application/useCases.ts — a key path used
+    // in a query but absent from the schema throws at runtime, not compile time.
+    const queried: Record<string, string[]> = {
+      transactions: ["accountId", "categoryId", "transferGroupId", "cardId"],
+      cardPurchases: ["cardId", "categoryId"],
+      pixKeys: ["accountId", "contactId"],
+      loanPayments: ["loanId"],
+    };
+    for (const [table, paths] of Object.entries(queried)) {
+      const indexes = db.table(table).schema.indexes.map((i) => i.keyPath);
+      for (const p of paths) expect(indexes, `${table}.${p}`).toContain(p);
+    }
+  });
+});

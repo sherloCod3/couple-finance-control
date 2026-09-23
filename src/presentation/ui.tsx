@@ -187,6 +187,7 @@ export const ICalendar = make(<><rect x="3.5" y="5" width="17" height="16" rx="2
 export const IArrowRight = make(<><path d="M4 12h15" /><path d="m13.5 6.5 5.5 5.5-5.5 5.5" /></>);
 export const IBell = make(<><path d="M18 10a6 6 0 1 0-12 0c0 5-2 6-2 6h16s-2-1-2-6" /><path d="M10 20a2.2 2.2 0 0 0 4 0" /></>);
 export const IReceipt = make(<><path d="M5 3h14v18l-2.4-1.6L14.2 21l-2.2-1.6L9.8 21l-2.4-1.6L5 21V3Z" /><path d="M9 8h6M9 12h6" /></>);
+export const ITag = make(<><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1a1 1 0 0 1 .7.3l7.4 7.4a1 1 0 0 1 0 1.4l-8.1 8.1a1 1 0 0 1-1.4 0L3.8 13.3a1 1 0 0 1-.3-.7Z" /><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none" /></>);
 
 export const LogoMark = ({ size = 30 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
