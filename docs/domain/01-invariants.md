@@ -1,7 +1,7 @@
 # Domain Invariants — quick reference
 
-The "cannot be broken" list while writing domain code (baseline Section 04).
-Every rule below should also exist as an automated test.
+The "cannot be broken" list while writing domain code (`docs/requirements.md` NFR-01,
+NFR-05). Every rule below should also exist as an automated test.
 
 ## Money & math
 
@@ -13,25 +13,42 @@ Every rule below should also exist as an automated test.
 ## Accounts & transactions
 
 - `INCOME` adds to the account, `EXPENSE` subtracts, `ADJUSTMENT` is a signed correction.
-- Month **net** counts signed adjustments —
-  `net = income − expenses + Σ signed ADJUSTMENTs` for the month. `income` and
-  `expenses` stay pure analytics (transfers and card payments excluded); net
-  reconciles with the derived account balance (`Transactions` summary, dashboard
-  savings %, `seriesForMonths` all follow this rule).
+- **Two month figures are derived, and they are deliberately not the same number:**
+  - **`spending`** = `expenses + cardSpending`. This is the "how much did we spend"
+    answer, and the single basis for category analytics, the dashboard *Spending*
+    figure, the 6-month series and the savings sentence. It **includes credit-card
+    purchases** (a purchase counts as spending), dated by *purchase date*, not by
+    statement period.
+  - **`net`** = `income − expenses + Σ signed ADJUSTMENTs` for the month. This is
+    the **cash reconciliation** figure: `income` and `expenses` stay pure analytics
+    (transfers and card payments excluded), so `net` reconciles with the derived
+    account balance. The dashboard labels it **cash net** so the two bases are
+    never confused.
+  - `monthTotals` / `seriesForMonths` return `income`, `expenses`, `cardSpending`,
+    `spending` and `net` together; `FinancialPosition` exposes the month as
+    `monthIncome`, `monthExpenses`, `monthCardSpending`, `monthSpending`, `monthNet`.
 - A **transfer is two linked legs** — one `EXPENSE`, one `INCOME` — sharing a
   `transferGroupId` (ULID). Net household impact is zero by construction.
 - Transfer legs are excluded from income/expense analytics (a transfer is neither).
 - Card statement payments are `EXPENSE` transactions flagged with `cardId` +
   `statementPeriod`; they reduce bank cash, settle the card obligation, and are
-  excluded from spending analytics (spending was counted at purchase time).
+  excluded from **both** `expenses` and `spending` (spending was counted at purchase
+  time, so counting the payment too would double-count it).
 - Account balance is **derived**: `openingBalance + Σ transaction impact`. It is never
   mutated directly, so it cannot drift from history.
+- The Activity page summary and per-day totals **shall** be produced by
+  `summarizeTxViews` (`application/queries.ts`) — never re-derived in a component
+  (ADR-001).
 
 ## Credit cards
 
 - A purchase counts as spending and reduces available credit.
+- Card purchases are therefore **included** in `spending` and in category
+  analytics, dated by purchase date (`expensesByCategory` takes `purchases`).
 - A purchase **never** reduces bank account cash.
-- Paying a statement reduces bank cash and settles the corresponding obligation.
+- Paying a statement reduces bank cash and settles the corresponding obligation,
+  but the payment is **excluded** from `expenses` and `spending` — the purchase was
+  already counted, so this is what prevents double-counting.
 - A purchase belongs to exactly one statement (its period is fixed at write time from
   the card's closing day).
 

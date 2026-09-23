@@ -67,7 +67,13 @@ export interface FinancialPosition {
   projectedCash: Money;
   availableCash: Money;
   monthIncome: Money;
+  /** Cash expenses only — the figure `monthNet` reconciles against. */
   monthExpenses: Money;
+  /** Credit-card purchases dated in the month. */
+  monthCardSpending: Money;
+  /** `monthExpenses + monthCardSpending` — the "how much did we spend" answer. */
+  monthSpending: Money;
+  /** Cash reconciliation: income − expenses + signed adjustments. */
   monthNet: Money;
   overdue: Obligation[];
   upcoming: Obligation[];
@@ -180,7 +186,7 @@ export const computePosition = (input: PositionInput): FinancialPosition => {
   const projectedCash = currentCash.sub(Money.sum(obligations.map((o) => o.amount)));
   const availableCash = currentCash.sub(committedCash);
 
-  const totals = monthTotals(input.transactions, ym);
+  const totals = monthTotals(input.transactions, ym, input.purchases);
 
   return {
     currentCash,
@@ -191,6 +197,8 @@ export const computePosition = (input: PositionInput): FinancialPosition => {
     availableCash,
     monthIncome: totals.income,
     monthExpenses: totals.expenses,
+    monthCardSpending: totals.cardSpending,
+    monthSpending: totals.spending,
     monthNet: totals.net,
     overdue,
     upcoming,
