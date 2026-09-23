@@ -1,7 +1,7 @@
 /** Transaction history with filtering, merged transfer legs and editing. */
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { getTransactions, type TxView } from "../../application/queries";
+import { getTransactions, summarizeTxViews, type TxView } from "../../application/queries";
 import * as uc from "../../application/useCases";
 import {
   Button,
@@ -74,17 +74,10 @@ export default function Transactions() {
     return [...map.entries()];
   }, [filtered]);
 
-  const summary = useMemo(() => {
-    let income = 0;
-    let expenses = 0;
-    let adjustments = 0;
-    for (const t2 of filtered) {
-      if (t2.kind === "INCOME") income += t2.amountCents;
-      else if (t2.kind === "EXPENSE" || t2.kind === "CARD_PAYMENT") expenses += t2.amountCents;
-      else if (t2.kind === "ADJUSTMENT") adjustments += t2.signedCents;
-    }
-    return { income, expenses, net: income - expenses + adjustments };
-  }, [filtered]);
+  // The classification rule lives once, in the application layer (ADR-001):
+  // card payments and transfer legs are not expenses, so they contribute to no
+  // income/expense total. This keeps the per-day and overall figures consistent.
+  const summary = useMemo(() => summarizeTxViews(filtered), [filtered]);
 
   const openEdit = (tx: TxView): void => {
     if (tx.kind === "TRANSFER" && tx.transferGroupId) {
@@ -195,15 +188,15 @@ export default function Transactions() {
         <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-linesoft pt-3 text-[12px] text-inksoft">
           <span>{fill(t.common_entries, { n: filtered.length })}</span>
           <span>
-            {t.common_income} <span className="num font-semibold text-pine-700">{fmtCents(summary.income)}</span>
+            {t.common_income} <span className="num font-semibold text-pine-700">{fmtCents(summary.incomeCents)}</span>
           </span>
           <span>
-            {t.common_expenses} <span className="num font-semibold text-rust-600">{fmtCents(summary.expenses)}</span>
+            {t.common_expenses} <span className="num font-semibold text-rust-600">{fmtCents(summary.expenseCents)}</span>
           </span>
           <span>
             {t.common_net}{" "}
-            <span className={`num font-semibold ${summary.net < 0 ? "text-rust-600" : "text-pine-700"}`}>
-              {summary.net < 0 ? `−${fmtCents(-summary.net)}` : `+${fmtCents(summary.net)}`}
+            <span className={`num font-semibold ${summary.netCents < 0 ? "text-rust-600" : "text-pine-700"}`}>
+              {summary.netCents < 0 ? `−${fmtCents(-summary.netCents)}` : `+${fmtCents(summary.netCents)}`}
             </span>
           </span>
         </div>
@@ -227,12 +220,7 @@ export default function Transactions() {
       ) : (
         <div className="space-y-3">
           {groups.map(([date, items]) => {
-            const dayNet = items.reduce((acc, t2) => {
-              if (t2.kind === "INCOME") return acc + t2.amountCents;
-              if (t2.kind === "EXPENSE" || t2.kind === "CARD_PAYMENT") return acc - t2.amountCents;
-              if (t2.kind === "ADJUSTMENT") return acc + t2.signedCents;
-              return acc;
-            }, 0);
+            const dayNet = summarizeTxViews(items).netCents;
             return (
               <section key={date} className="rounded-xl border border-line bg-surface shadow-sm">
                 <header className="flex items-center justify-between border-b border-linesoft px-4 py-2.5">

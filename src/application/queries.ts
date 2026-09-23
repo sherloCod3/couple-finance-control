@@ -51,7 +51,7 @@ import {
 } from "../domain/services/loans";
 import { expectedAmount, firstFutureOccurrence, occurrencesBetween, occurrencePaid } from "../domain/services/forecast";
 import { computePosition, type FinancialPosition } from "../domain/services/position";
-import { addMonthsKey, currentMonthKey, daysInMonthKey, isoWithDay, todayISO } from "../domain/utils/dates";
+import { addMonthsKey, daysInMonthKey, isoWithDay, monthKey, todayISO } from "../domain/utils/dates";
 
 export interface MemberLite {
   id: string;
@@ -122,6 +122,43 @@ export interface PurchaseView {
   categoryName: string | null;
   categoryColor: string | null;
 }
+
+export interface TxSummary {
+  incomeCents: number;
+  expenseCents: number;
+  adjustmentCents: number;
+  netCents: number;
+}
+
+/**
+ * Ledger summary for a set of transaction rows, applying the domain rule once
+ * (ADR-001 — the view layer must not re-implement financial rules):
+ *
+ *   income      += INCOME
+ *   expense     += EXPENSE   (card payments are NOT expenses — already counted
+ *                             at purchase time; transfers are not either)
+ *   adjustment  += signed ADJUSTMENT
+ *   net          = income − expense + adjustment   (cash reconciliation)
+ *
+ * Because card payments and transfers contribute to nothing here, the per-day
+ * and overall summaries on the Activity page stay mutually consistent.
+ */
+export const summarizeTxViews = (views: TxView[]): TxSummary => {
+  let incomeCents = 0;
+  let expenseCents = 0;
+  let adjustmentCents = 0;
+  for (const v of views) {
+    if (v.kind === "INCOME") incomeCents += v.amountCents;
+    else if (v.kind === "EXPENSE") expenseCents += v.amountCents;
+    else if (v.kind === "ADJUSTMENT") adjustmentCents += v.signedCents;
+  }
+  return {
+    incomeCents,
+    expenseCents,
+    adjustmentCents,
+    netCents: incomeCents - expenseCents + adjustmentCents,
+  };
+};
 
 export interface StatementView {
   period: string;
@@ -275,9 +312,9 @@ const accountViews = (base: Base): AccountView[] =>
     };
   });
 
-const cardViews = (base: Base): CardView[] =>
+const cardViews = (base: Base, today: string = todayISO()): CardView[] =>
   base.cards.map((card) => {
-    const statements = buildStatements(card, base.purchases, base.transactions);
+    const statements = buildStatements(card, base.purchases, base.transactions, today);
     const outstanding = cardOutstanding(statements);
     const available = availableLimit(card, statements);
     return {
@@ -394,9 +431,8 @@ const txViews = (base: Base): TxView[] => {
   return out;
 };
 
-const recurringViews = (base: Base): RecurringView[] => {
-  const today = todayISO();
-  const ym = currentMonthKey();
+const recurringViews = (base: Base, today: string = todayISO()): RecurringView[] => {
+  const ym = monthKey(today);
   const monthStart = isoWithDay(ym, 1);
   const monthEnd = isoWithDay(ym, daysInMonthKey(ym));
   return base.recurrings.map((r) => {
@@ -472,11 +508,11 @@ const loansSummary = (base: Base): LoansSummary => {
   };
 };
 
-const categorySlices = (base: Base): CategorySlice[] => {
-  const ym = currentMonthKey();
+const categorySlices = (base: Base, today: string = todayISO()): CategorySlice[] => {
+  const ym = monthKey(today);
   const prev = addMonthsKey(ym, -1);
-  const current = expensesByCategory(base.transactions, ym);
-  const previous = expensesByCategory(base.transactions, prev);
+  const current = expensesByCategory(base.transactions, ym, base.purchases);
+  const previous = expensesByCategory(base.transactions, prev, base.purchases);
   const totalCents = [...current.values()].reduce((a, m) => a + m.cents, 0);
   const slices: CategorySlice[] = [];
   for (const [key, money] of current) {
@@ -495,8 +531,9 @@ const categorySlices = (base: Base): CategorySlice[] => {
 
 // ---- public queries -------------------------------------------------------
 
-export async function getDashboard(): Promise<DashboardVM> {
+export async function getDashboard(today?: string): Promise<DashboardVM> {
   const base = await loadBase();
+  const at = today ?? todayISO();
   const position = computePosition({
     accounts: base.accounts,
     transactions: base.transactions,
@@ -505,15 +542,16 @@ export async function getDashboard(): Promise<DashboardVM> {
     purchases: base.purchases,
     loans: base.loans,
     loanPayments: base.loanPayments,
+    today: at,
   });
-  const cur = currentMonthKey();
+  const cur = monthKey(at);
   const yms = Array.from({ length: 6 }, (_, i) => addMonthsKey(cur, i - 5));
   return {
     position,
-    series: seriesForMonths(base.transactions, yms),
-    slices: categorySlices(base),
+    series: seriesForMonths(base.transactions, yms, base.purchases),
+    slices: categorySlices(base, at),
     recent: txViews(base).slice(0, 8),
-    cards: cardViews(base),
+    cards: cardViews(base, at),
     accounts: accountViews(base),
     loans: loansSummary(base),
   };
@@ -527,12 +565,12 @@ export async function getAccounts(): Promise<AccountView[]> {
   return accountViews(await loadBase());
 }
 
-export async function getCards(): Promise<CardView[]> {
-  return cardViews(await loadBase());
+export async function getCards(today?: string): Promise<CardView[]> {
+  return cardViews(await loadBase(), today ?? todayISO());
 }
 
-export async function getRecurrings(): Promise<RecurringView[]> {
-  return recurringViews(await loadBase());
+export async function getRecurrings(today?: string): Promise<RecurringView[]> {
+  return recurringViews(await loadBase(), today ?? todayISO());
 }
 
 export async function getLoans(): Promise<LoanView[]> {

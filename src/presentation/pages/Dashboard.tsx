@@ -77,9 +77,13 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
   const { position, series, slices, recent, cards, accounts } = vm;
   const obligations = [...position.overdue, ...position.upcoming].slice(0, 6);
   const monthName = monthNameOf(currentMonthKey());
+  // "Are we spending more or less than we received?" — spending includes card
+  // purchases, so this is the same basis as the Spending figure below it.
   const savingsPct = position.monthIncome.isZero()
     ? null
-    : Math.round((position.monthNet.cents / position.monthIncome.cents) * 100);
+    : Math.round(
+        ((position.monthIncome.cents - position.monthSpending.cents) / position.monthIncome.cents) * 100
+      );
 
   const recordObligation = (o: Obligation): void => {
     const ref = o.ref;
@@ -245,22 +249,37 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
             <header className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-[16px] font-bold tracking-tight">{monthName}</h2>
               <Badge tone={position.monthNet.isNegative() ? "danger" : "ok"}>
-                {t.common_net} {fmtSignedCents(position.monthNet.cents)}
+                {t.common_cashNet} {fmtSignedCents(position.monthNet.cents)}
               </Badge>
             </header>
             <div className="space-y-3.5">
               {[
-                { label: t.dash_incomeReceived, cents: position.monthIncome.cents, cls: "text-pine-700", bar: position.monthIncome.cents, tone: "bg-pine-500" as const },
-                { label: t.dash_spending, cents: position.monthExpenses.cents, cls: "text-rust-600", bar: position.monthExpenses.cents, tone: "bg-rust-600" as const },
+                {
+                  label: t.dash_incomeReceived,
+                  cents: position.monthIncome.cents,
+                  cls: "text-pine-700",
+                  tone: "bg-pine-500" as const,
+                  note: null as string | null,
+                },
+                {
+                  label: t.dash_spending,
+                  cents: position.monthSpending.cents,
+                  cls: "text-rust-600",
+                  tone: "bg-rust-600" as const,
+                  note: position.monthCardSpending.isZero()
+                    ? null
+                    : fill(t.dash_includesCards, { v: fmtCents(position.monthCardSpending.cents) }),
+                },
               ].map((r) => {
-                const maxBar = Math.max(position.monthIncome.cents, position.monthExpenses.cents, 1);
+                const maxBar = Math.max(position.monthIncome.cents, position.monthSpending.cents, 1);
                 return (
                   <div key={r.label}>
                     <div className="flex items-baseline justify-between">
                       <p className="text-[12px] font-bold text-inksoft">{r.label}</p>
                       <p className={cls("num text-[15px] font-semibold", r.cls)}>{fmtCents(r.cents)}</p>
                     </div>
-                    <ProgressBar pct={(r.bar / maxBar) * 100} className="mt-1.5 h-1.5" tone={r.tone === "bg-pine-500" ? "ok" : "danger"} />
+                    <ProgressBar pct={(r.cents / maxBar) * 100} className="mt-1.5 h-1.5" tone={r.tone === "bg-pine-500" ? "ok" : "danger"} />
+                    {r.note && <p className="mt-1 text-[11px] text-inkfaint">{r.note}</p>}
                   </div>
                 );
               })}
@@ -288,7 +307,8 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
               data={series.map((p, i) => ({
                 label: monthShortOf(p.ym),
                 income: p.income.cents,
-                expenses: p.expenses.cents,
+                // Same basis as the month card: cash expenses + card purchases.
+                expenses: p.spending.cents,
                 highlight: i === series.length - 1,
               }))}
             />
