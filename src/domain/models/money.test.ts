@@ -47,6 +47,13 @@ describe("Money value object (Section 04 — Money & Math)", () => {
     expect(Money.fromCents(4).lt(Money.fromCents(5))).toBe(true);
   });
 
+  it("rejects pathological magnitudes that overflow safe integer cents", () => {
+    expect(() => Money.fromDecimal(1e21)).toThrow(DomainError);
+    expect(() => Money.fromDecimal(Number.MAX_VALUE)).toThrow(DomainError);
+    expect(() => Money.fromDecimal(Number.POSITIVE_INFINITY)).toThrow(DomainError);
+    expect(() => Money.fromDecimal(Number.NaN)).toThrow(DomainError);
+  });
+
   it("sums iterables in integer space", () => {
     const total = Money.sum([Money.fromCents(1), Money.fromCents(2), Money.fromCents(3)]);
     expect(total.cents).toBe(6);
