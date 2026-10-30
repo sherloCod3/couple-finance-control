@@ -115,7 +115,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (page: string) =
     <div className="space-y-5">
       {/* ---- position board ------------------------------------------------ */}
       <Reveal>
-        <section className="ledger-sheet relative overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+        <section data-tour="dash-position" className="ledger-sheet relative overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
           <div className="grid gap-0 md:grid-cols-[1.15fr_1fr]">
             <div className="px-6 py-6 sm:px-8">
               <div className="flex items-center justify-between gap-3">

@@ -140,7 +140,7 @@ export default function Transactions() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-line bg-surface p-4 shadow-sm">
+      <section data-tour="tx-filters" className="rounded-xl border border-line bg-surface p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-inkfaint">

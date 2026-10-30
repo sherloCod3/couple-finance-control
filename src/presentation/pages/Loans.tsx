@@ -303,7 +303,7 @@ export default function Loans() {
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-wrap items-center justify-between gap-3">
+      <section data-tour="page-loans" className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-md text-[12.5px] leading-relaxed text-inksoft">{t.loan_intro}</p>
         <Button onClick={() => setModal(true)}>
           <IPlus size={15} /> {t.loan_newLoan}

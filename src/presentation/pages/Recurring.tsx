@@ -242,7 +242,7 @@ export default function Recurring() {
 
   return (
     <div className="space-y-4">
-      <section className="flex flex-wrap items-center justify-between gap-3">
+      <section data-tour="page-plans" className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-md text-[12.5px] leading-relaxed text-inksoft">{t.plan_intro}</p>
         <Button onClick={() => setModal({ open: true })}>
           <IPlus size={15} /> {t.plan_createPlan}

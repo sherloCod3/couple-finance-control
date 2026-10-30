@@ -342,7 +342,7 @@ export default function Accounts() {
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-wrap items-center justify-between gap-3">
+      <section data-tour="page-accounts" className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-inkfaint">{t.acct_totalCash}</p>
           <p className="num text-[28px] font-semibold tracking-tight text-ink">{fmtCents(total)}</p>

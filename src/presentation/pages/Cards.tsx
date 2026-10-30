@@ -241,7 +241,7 @@ export default function Cards() {
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-wrap items-center justify-between gap-3">
+      <section data-tour="page-cards" className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-md text-[12.5px] leading-relaxed text-inksoft">{t.card_intro}</p>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setPurchaseModal(true)} disabled={cards.length === 0}>

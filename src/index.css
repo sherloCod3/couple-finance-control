@@ -142,8 +142,20 @@ button:disabled { cursor: not-allowed; }
 
 input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; }
 
+/* ---- guided tour --------------------------------------------------------- */
+.tour-ring {
+  pointer-events: none;
+  border: 1.5px solid var(--color-gold-600);
+  box-shadow: 0 0 0 9999px rgba(10, 33, 21, 0.62);
+  transition:
+    top 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1; transform: none; transition: none; }
   .pop-in, .fade-in, .toast-in { animation: none; }
-  .bar-anim, .donut-seg { transition: none; }
+  .bar-anim, .donut-seg, .tour-ring { transition: none; }
 }

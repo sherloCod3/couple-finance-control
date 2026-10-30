@@ -16,11 +16,13 @@ import {
   ICloudOff,
   IDownload,
   IGrid,
+  IInfo,
   IList,
   IPlus,
   IRepeat,
   IScale,
   IWallet,
+  IconBtn,
   LogoMark,
   ToastProvider,
   cls,
@@ -32,14 +34,13 @@ import {
 } from "./presentation/ui";
 import { LangProvider, daysUntil, relDueT, useT, type Lang } from "./presentation/i18n";
 import { TransactionModal } from "./presentation/actions";
+import { Tour, hasSeenTour, resetTour, type PageId } from "./presentation/tour";
 import Dashboard from "./presentation/pages/Dashboard";
 import Transactions from "./presentation/pages/Transactions";
 import Accounts from "./presentation/pages/Accounts";
 import CardsPage from "./presentation/pages/Cards";
 import Recurring from "./presentation/pages/Recurring";
 import Loans from "./presentation/pages/Loans";
-
-type PageId = "overview" | "transactions" | "accounts" | "cards" | "recurring" | "loans";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -162,6 +163,7 @@ function Shell() {
   const household = useLiveQuery(() => getHousehold(), []);
   const [page, setPage] = useState<PageId>("overview");
   const [quickAdd, setQuickAdd] = useState(false);
+  const [tour, setTour] = useState(() => !hasSeenTour());
   const [confirmReset, setConfirmReset] = useState(false);
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -202,6 +204,7 @@ function Shell() {
 
   const doReset = async (): Promise<void> => {
     setConfirmReset(false);
+    resetTour();
     await uc.resetDemoData();
     window.setTimeout(() => window.location.reload(), 400);
   };
@@ -333,7 +336,7 @@ function Shell() {
 
       {/* ---------- main ---------- */}
       <div className="lg:pl-[228px]">
-        <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
+        <header data-tour="shell-head" className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
           <div className="mx-auto flex max-w-[1180px] items-center gap-3 px-4 py-3 lg:px-8">
             <span className="lg:hidden">
               <LogoMark size={26} />
@@ -354,11 +357,16 @@ function Shell() {
                 <button type="button" aria-pressed={lang === "en"} onClick={() => setLang("en")} className={cls("num px-2 py-1.5 text-[11px] font-bold transition-colors", lang === "en" ? "bg-pine-700 text-pine-50" : "bg-raise text-inksoft")}>EN</button>
                 <button type="button" aria-pressed={lang === "pt-BR"} onClick={() => setLang("pt-BR")} className={cls("num px-2 py-1.5 text-[11px] font-bold transition-colors", lang === "pt-BR" ? "bg-pine-700 text-pine-50" : "bg-raise text-inksoft")}>PT</button>
               </div>
+              <IconBtn label={t.tour_replay} onClick={() => setTour(true)}>
+                <IInfo size={16} />
+              </IconBtn>
               <RemindersBell onNavigate={() => setPage("overview")} />
-              <Button onClick={() => setQuickAdd(true)}>
-                <IPlus size={15} /> <span className="hidden sm:inline">{t.shell_addEntry}</span>
-                <span className="sm:hidden">{t.common_new}</span>
-              </Button>
+              <span data-tour="quick-add" className="inline-flex">
+                <Button onClick={() => setQuickAdd(true)}>
+                  <IPlus size={15} /> <span className="hidden sm:inline">{t.shell_addEntry}</span>
+                  <span className="sm:hidden">{t.common_new}</span>
+                </Button>
+              </span>
             </div>
           </div>
           <nav className="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
@@ -391,6 +399,7 @@ function Shell() {
       </div>
 
       <TransactionModal open={quickAdd} onClose={() => setQuickAdd(false)} />
+      <Tour open={tour} page={page} onNavigate={setPage} onClose={() => setTour(false)} />
       <Confirm
         open={confirmReset}
         onClose={() => setConfirmReset(false)}
