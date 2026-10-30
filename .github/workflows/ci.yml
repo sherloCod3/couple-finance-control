@@ -4,7 +4,7 @@ name: CI
 # the three gates were green only on the author's machine.
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild-green]
   pull_request:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   verify:
-    name: typecheck · test · build
+    name: typecheck · test · build · offline
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -48,6 +48,11 @@ jobs:
             exit 1
           fi
           echo "Precache manifest injected."
+
+      # Drives headless Chrome against dist/ to prove a cold offline start still
+      # renders the shell from the service-worker cache.
+      - name: Verify cold offline start
+        run: npm run verify:offline
 
       - name: Test
         run: npm test

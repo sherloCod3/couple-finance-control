@@ -12,8 +12,9 @@
  * Run:  npm run verify:offline      (after `npm run build`)
  * Env:  CHROME_PATH=/path/to/chrome to override browser discovery
  *
- * Not part of CI — it needs a local Chrome. The static checks in
- * `test/pwa-assets.test.ts` guard the same contract without a browser.
+ * Runs in CI on ubuntu-latest against the runner's Chrome; locally it needs
+ * Chrome installed (CHROME_PATH overrides discovery).
+ * `test/pwa-assets.test.ts` guards the precache contract without a browser.
  */
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
@@ -95,6 +96,8 @@ const chrome = spawn(
     "--disable-gpu",
     "--disable-extensions",
     "--disable-background-networking",
+    // CI runners run Chrome as root/sandboxed containers.
+    ...(process.env.CI ? ["--no-sandbox", "--disable-dev-shm-usage"] : []),
     "about:blank",
   ],
   { stdio: "ignore" }
@@ -185,8 +188,16 @@ console.log(`    service worker active: ${registered}`);
 console.log(`    cache name:            ${cacheState.shell}`);
 console.log(`    precached entries:     ${cacheState.cached}`);
 
-const onlineText = await evaluate(`document.getElementById("root").innerText.length`);
-console.log(`    rendered text length:  ${onlineText}`);
+// The offline indicator renders only while offline, so it is not part of the
+// shell contract. Hide it before reading the text the shell is compared on.
+const SHELL_TEXT = `(() => {
+  const badge = document.querySelector("[data-offline-badge]");
+  if (badge) badge.style.display = "none";
+  return document.getElementById("root").innerText;
+})()`;
+
+const onlineText = await evaluate(SHELL_TEXT);
+console.log(`    rendered text length:  ${onlineText.length}`);
 
 // ------------------------------------------------------- 2. go offline, reload
 console.log("\n[2] cutting the network and reloading…");
@@ -210,11 +221,11 @@ console.log(`    cross-origin dead:     ${crossOriginDead}`);
 await send("Page.reload", { ignoreCache: true }, sessionId);
 await sleep(3500);
 
-const offlineText = await evaluate(`document.getElementById("root").innerText.length`);
+const offlineText = await evaluate(SHELL_TEXT);
 const hasShell = await evaluate(`document.body.innerText.includes("Couple Finance")`);
 const swControls = await evaluate(`!!navigator.serviceWorker.controller`);
 
-console.log(`    rendered text length:  ${offlineText}`);
+console.log(`    rendered text length:  ${offlineText.length}`);
 console.log(`    app shell present:     ${hasShell}`);
 console.log(`    SW controls the page:  ${swControls}`);
 
@@ -225,7 +236,7 @@ const ok =
   !navOnline &&
   crossOriginDead &&
   swControls &&
-  offlineText > 1000 &&
+  offlineText.length > 1000 &&
   offlineText === onlineText &&
   hasShell;
 

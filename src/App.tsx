@@ -349,7 +349,7 @@ function Shell() {
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {!online && (
-                <span className="hidden items-center gap-1.5 rounded-md bg-gold-100 px-2.5 py-1.5 text-[11.5px] font-semibold text-gold-700 sm:inline-flex">
+                <span data-offline-badge className="hidden items-center gap-1.5 rounded-md bg-gold-100 px-2.5 py-1.5 text-[11.5px] font-semibold text-gold-700 sm:inline-flex">
                   <ICloudOff size={13} /> {t.shell_offline}
                 </span>
               )}
