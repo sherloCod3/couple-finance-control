@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "../infrastructure/db";
 import * as uc from "./useCases";
+import { exportBackup, importBackup } from "./backup";
 
 /** Identity and configuration, not history — deliberately kept by a wipe. */
 const KEPT = new Set(["households", "members", "categories"]);
@@ -149,5 +150,53 @@ describe("saveHouseholdProfile", () => {
     await expect(
       uc.saveHouseholdProfile(profile("Our place", "y".repeat(31), "Bruno"))
     ).rejects.toThrow();
+  });
+});
+
+describe("household profile and the backup envelope", () => {
+  it("carries renamed household and members through export and import", async () => {
+    await uc.saveHouseholdProfile({
+      name: "Our place",
+      members: [
+        { id: "m-ana", name: "Alex" },
+        { id: "m-bruno", name: "Bea" },
+      ],
+    });
+    const json = await exportBackup();
+
+    // The snapshot itself holds the names and the demo flag...
+    const envelope = JSON.parse(json) as {
+      tables: { households: Record<string, unknown>[]; members: Record<string, unknown>[] };
+    };
+    expect(envelope.tables.households[0].name).toBe("Our place");
+    expect(envelope.tables.households[0].demo).toBe(true);
+    expect(envelope.tables.members.map((m) => m.name)).toEqual(["Alex", "Bea"]);
+
+    // ...and restoring it brings them back, overriding whatever is local now.
+    await uc.clearFinancialData();
+    await uc.saveHouseholdProfile({
+      name: "Wrong",
+      members: [
+        { id: "m-ana", name: "Wrong" },
+        { id: "m-bruno", name: "Wrong" },
+      ],
+    });
+    await importBackup(json);
+
+    expect((await db.households.toCollection().first())?.name).toBe("Our place");
+    expect((await db.members.get("m-ana"))?.name).toBe("Alex");
+    expect((await db.members.get("m-bruno"))?.name).toBe("Bea");
+    expect(await db.transactions.count()).toBeGreaterThan(0);
+  });
+
+  it("keeps a cleared ledger labelled as local after a round trip", async () => {
+    await uc.clearFinancialData(); // demo flips to false
+    const json = await exportBackup();
+
+    // Simulate any state that still carries the seed flag.
+    await db.households.toCollection().modify({ demo: true });
+    await importBackup(json);
+
+    expect((await db.households.toCollection().first())?.demo).toBe(false);
   });
 });
