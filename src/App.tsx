@@ -507,6 +507,14 @@ function Shell() {
             {page === "recurring" && <Recurring />}
             {page === "loans" && <Loans />}
           </div>
+          {/* Mobile only: the sidebar carries the wordmark and version on desktop,
+              but it is `hidden lg:flex`. A footer line rather than a header chip,
+              because the header's right cluster already holds four controls and
+              at 360px a fifth would truncate the page title to nothing. */}
+          <footer className="mx-auto flex max-w-[1180px] items-center justify-center gap-1.5 px-4 pb-6 lg:hidden">
+            <span className="num text-[9px] uppercase tracking-[0.26em] text-inkfaint">control</span>
+            <span className="num text-[9px] text-inkfaint">v{__APP_VERSION__}</span>
+          </footer>
         </main>
       </div>
 

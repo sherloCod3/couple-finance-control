@@ -89,10 +89,12 @@ const addAccount = (): Promise<string> =>
   });
 
 describe("shell after a clean start", () => {
-  it("shows the release version from package.json, not a hardcoded literal", () => {
+  it("shows the release version from package.json in both shells", () => {
     render(<App />);
 
-    expect(screen.getByText(`v${manifestVersion}`)).toBeTruthy();
+    // Two render sites: the desktop sidebar block and the mobile footer. CSS
+    // decides which one is visible, so jsdom sees both at once.
+    expect(screen.getAllByText(`v${manifestVersion}`)).toHaveLength(2);
   });
 
   it("stops calling the ledger fictional once the data is cleared", async () => {
