@@ -163,7 +163,11 @@ household data, which stays in the browser's IndexedDB.
 
 On first run the app seeds a **clearly fictional** demo household ("Demo Household",
 Ana & Bruno, `demo@example.com`, card `••4321`) generated relative to today's date, so the
-dashboard is always alive. Use **Reset demo data** in the sidebar to reseed.
+dashboard is always alive. Use **Reset demo data** in the sidebar to reseed, or
+**Clear all data** to delete every financial record and start from zero — the household,
+its members and the categories are kept, so only an account has to be created again.
+The household and both member names are editable from the sidebar card, so a real
+ledger never has to keep the demo names.
 
 ## Security & public repository rules
 

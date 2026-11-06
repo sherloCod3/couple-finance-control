@@ -45,6 +45,14 @@
 
 - **Reset demo data** deletes the database; the `populate` hook reseeds the
   fictional household on next open.
+- **Clear all data** wipes every financial table — accounts, transactions,
+  cards, purchases, plans, loans, loan payments, PIX keys and contacts — inside
+  a single transaction, keeping the household, its members and the category
+  dictionary. It never deletes the database, so the demo seed does not run. It
+  also flips the household's optional `demo` flag to `false` (a non-indexed
+  field, so no schema version bump), which is what the shell reads to stop
+  labelling the ledger as fictional; rows written before the flag existed read
+  as `true`.
 - **Import backup** replaces local data with a snapshot — the intended path
   before/after clearing browser storage or moving devices, until the sync
   layer (ADR-003) exists.
