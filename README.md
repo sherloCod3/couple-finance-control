@@ -145,7 +145,7 @@ environment variables. Any static host works.
 `vite.config.js` sets `base: "./"`, so the **same build** runs either at a domain root or
 under a sub-path. Nothing has to change between the two — upload `dist/` as-is:
 
-- **Domain root** (Netlify, Vercel, Cloudflare Pages, nginx): publish `dist/`.
+- **Domain root** (Netlify, Vercel, Cloudflare Workers, nginx): publish `dist/`.
 - **Sub-path** (a GitHub Pages project site such as
   `https://<user>.github.io/couple-finance-control/`): publish `dist/` at that path. The
   manifest (`start_url: "./"`, `scope: "./"`) and the service worker (registered as
@@ -158,21 +158,29 @@ Two hosting notes:
 - Do **not** add a catch-all SPA rewrite. Navigation is in-app state rather than URL
   routing, so there are no deep links to fall back to.
 
-### Cloudflare Pages
+### Cloudflare Workers (static assets)
 
-The production host is Cloudflare Pages, and it builds the same static site as every
-other host — no Workers, no functions, no adapter:
+The production host is a Cloudflare Worker that serves nothing but static assets — no
+API, no bindings, no functions. `wrangler.jsonc` is committed and describes it:
 
-| Setting | Value |
-| --- | --- |
-| Build command | `npm run build` |
-| Build output directory | `dist` |
-| Node version | pinned by `.nvmrc` (22), same as CI |
+| Setting | Where | Value |
+| --- | --- | --- |
+| Build command | dashboard | `npm run build` |
+| Deploy command | dashboard | `npx wrangler preview` |
+| Assets directory | `wrangler.jsonc` | `./dist` |
+| Node version | `.nvmrc` | 22 |
 
-The repository carries no `wrangler` configuration or dependency: Pages reads these
-settings from the project dashboard, and a push to the connected branch is what triggers
-a build. For a one-off CLI publish, `npx wrangler pages deploy dist` needs no local
-install.
+`wrangler` is a pinned devDependency, so `npx wrangler …` resolves the locked version
+instead of downloading the latest release on every build. `previews: {}` in the config is
+what the Previews command requires.
+
+`wrangler preview` publishes to the Previews feature (open beta). If a build should
+update the production Worker instead, set the deploy command to `npx wrangler deploy`.
+
+`assets.not_found_handling: "single-page-application"` serves the shell for unknown
+paths. It is not a redirect rule, so no `_redirects` file is involved.
+
+To publish from the CLI: `npm run build && npx wrangler deploy`.
 
 Because the app is local-first, the host only ever serves static files. It never sees
 household data, which stays in the browser's IndexedDB.
