@@ -158,6 +158,22 @@ Two hosting notes:
 - Do **not** add a catch-all SPA rewrite. Navigation is in-app state rather than URL
   routing, so there are no deep links to fall back to.
 
+### Cloudflare Pages
+
+The production host is Cloudflare Pages, and it builds the same static site as every
+other host — no Workers, no functions, no adapter:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Node version | pinned by `.nvmrc` (22), same as CI |
+
+The repository carries no `wrangler` configuration or dependency: Pages reads these
+settings from the project dashboard, and a push to the connected branch is what triggers
+a build. For a one-off CLI publish, `npx wrangler pages deploy dist` needs no local
+install.
+
 Because the app is local-first, the host only ever serves static files. It never sees
 household data, which stays in the browser's IndexedDB.
 
