@@ -425,6 +425,7 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const { t } = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
@@ -451,7 +452,7 @@ export function Modal({
             <h2 className="font-display text-[17px] font-bold tracking-tight text-ink">{title}</h2>
             {subtitle && <p className="mt-0.5 text-[12px] text-inkfaint">{subtitle}</p>}
           </div>
-          <IconBtn label="Close" onClick={onClose}>
+          <IconBtn label={t.common_close} onClick={onClose}>
             <IX size={18} />
           </IconBtn>
         </div>
@@ -476,11 +477,12 @@ export function Confirm({
   onConfirm: () => void;
   onClose: () => void;
 }) {
+  const { t } = useT();
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <p className="text-[13.5px] leading-relaxed text-inksoft">{message}</p>
       <div className="mt-5 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" onClick={onClose}>{t.common_cancel}</Button>
         <Button variant="danger" onClick={onConfirm}>{confirmLabel}</Button>
       </div>
     </Modal>

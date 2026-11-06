@@ -11,6 +11,7 @@ import * as uc from "./application/useCases";
 import {
   Button,
   Confirm,
+  Field,
   ICard,
   IBell,
   ICloudOff,
@@ -24,15 +25,17 @@ import {
   IWallet,
   IconBtn,
   LogoMark,
+  Modal,
   ToastProvider,
   cls,
   fmtCents,
   fmtDate,
+  inputCls,
   useOnline,
   useToast,
   type IconProps,
 } from "./presentation/ui";
-import { LangProvider, daysUntil, relDueT, useT, type Lang } from "./presentation/i18n";
+import { LangProvider, daysUntil, fill, relDueT, useT, type Lang } from "./presentation/i18n";
 import { TransactionModal } from "./presentation/actions";
 import { Tour, hasSeenTour, resetTour, type PageId } from "./presentation/tour";
 import Dashboard from "./presentation/pages/Dashboard";
@@ -156,6 +159,77 @@ function RemindersBell({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
+/**
+ * Renames the household and its members. Rendered only while open, so the
+ * fields initialise from the live values on every open.
+ */
+function HouseholdModal({
+  household,
+  onClose,
+}: {
+  household: { name: string; members: { id: string; name: string; color: string }[] };
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const { t } = useT();
+  const [name, setName] = useState(household.name);
+  const [memberNames, setMemberNames] = useState<Record<string, string>>(() =>
+    Object.fromEntries(household.members.map((m) => [m.id, m.name]))
+  );
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (): Promise<void> => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await uc.saveHousehold(name);
+      for (const m of household.members) {
+        const next = memberNames[m.id] ?? m.name;
+        if (next.trim() !== m.name) await uc.saveMember(m.id, next);
+      }
+      toast.push("success", t.shell_householdSaved);
+      onClose();
+    } catch (e) {
+      toast.push("error", e instanceof Error ? e.message : t.common_couldNotSave);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} title={t.shell_editHousehold}>
+      <div className="space-y-4">
+        <Field label={t.shell_householdName}>
+          <input
+            className={inputCls}
+            value={name}
+            maxLength={40}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+        {household.members.map((m, i) => (
+          <Field key={m.id} label={fill(t.shell_memberN, { n: i + 1 })}>
+            <input
+              className={inputCls}
+              value={memberNames[m.id] ?? m.name}
+              maxLength={30}
+              onChange={(e) => setMemberNames((s) => ({ ...s, [m.id]: e.target.value }))}
+            />
+          </Field>
+        ))}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button variant="ghost" onClick={onClose}>
+            {t.common_cancel}
+          </Button>
+          <Button onClick={() => void submit()} disabled={busy}>
+            {busy ? t.common_saving : t.common_save}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function Shell() {
   const toast = useToast();
   const { t, lang, setLang } = useT();
@@ -165,6 +239,8 @@ function Shell() {
   const [quickAdd, setQuickAdd] = useState(false);
   const [tour, setTour] = useState(() => !hasSeenTour());
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [editHousehold, setEditHousehold] = useState(false);
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -207,6 +283,17 @@ function Shell() {
     resetTour();
     await uc.resetDemoData();
     window.setTimeout(() => window.location.reload(), 400);
+  };
+
+  /** Clean start: financial rows only — the couple and the categories stay. */
+  const doClearAll = async (): Promise<void> => {
+    setConfirmClear(false);
+    try {
+      await uc.clearFinancialData();
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch {
+      toast.push("error", t.common_couldNotSave);
+    }
   };
 
   const doExport = async (): Promise<void> => {
@@ -293,7 +380,18 @@ function Shell() {
                 {(household?.members ?? []).map((m) => m.name).join(" & ") || "…"}
               </span>
             </div>
-            <p className="mt-2.5 text-[10.5px] leading-relaxed text-pine-300/90">{t.shell_demo}</p>
+            <div className="mt-2.5 flex items-center justify-between gap-2">
+              <p className="text-[10.5px] leading-relaxed text-pine-300/90">
+                {household?.demo === false ? t.shell_localOnly : t.shell_demo}
+              </p>
+              <button
+                type="button"
+                onClick={() => setEditHousehold(true)}
+                className="shrink-0 text-[10.5px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50"
+              >
+                {t.shell_editHousehold}
+              </button>
+            </div>
           </div>
           <div className="flex items-center justify-between rounded-lg bg-pine-900/60 px-2 py-1.5">
             <span className="px-1 text-[10.5px] font-bold uppercase tracking-wide text-pine-300">{t.shell_lang}</span>
@@ -319,6 +417,15 @@ function Shell() {
               {t.shell_resetDemo}
             </button>
             <span className="num text-[10px] text-pine-400/70">v1.0</span>
+          </div>
+          <div className="px-1">
+            <button
+              type="button"
+              onClick={() => setConfirmClear(true)}
+              className="text-[11px] font-medium text-rust-100/85 underline decoration-rust-600 underline-offset-2 transition-colors hover:text-rust-100"
+            >
+              {t.shell_clearAll}
+            </button>
           </div>
         </div>
       </aside>
@@ -399,6 +506,9 @@ function Shell() {
       </div>
 
       <TransactionModal open={quickAdd} onClose={() => setQuickAdd(false)} />
+      {editHousehold && household && (
+        <HouseholdModal household={household} onClose={() => setEditHousehold(false)} />
+      )}
       <Tour open={tour} page={page} onNavigate={setPage} onClose={() => setTour(false)} />
       <Confirm
         open={confirmReset}
@@ -407,6 +517,14 @@ function Shell() {
         title={t.shell_resetTitle}
         message={t.shell_resetMsg}
         confirmLabel={t.shell_resetDemo}
+      />
+      <Confirm
+        open={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={doClearAll}
+        title={t.shell_clearTitle}
+        message={t.shell_clearMsg}
+        confirmLabel={t.shell_clearConfirm}
       />
     </div>
   );
