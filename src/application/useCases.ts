@@ -642,3 +642,67 @@ export async function deleteContact(id: string): Promise<void> {
 export async function resetDemoData(): Promise<void> {
   await db.delete();
 }
+
+/**
+ * Renames the household. The app models exactly one household per install
+ * (the row is created by the seed), so this targets the single existing row
+ * instead of taking an id.
+ */
+export async function saveHousehold(name: string): Promise<void> {
+  const clean = requireText(name, "Household name", 40);
+  const household = await db.households.toCollection().first();
+  if (!household) fail("Household not found.");
+  await db.households.update(household.id, { name: clean });
+}
+
+/** Renames a member. The avatar colour is derived at seed time and stays put. */
+export async function saveMember(id: string, name: string): Promise<void> {
+  const clean = requireText(name, "Member name", 30);
+  const member = await db.members.get(id);
+  if (!member) fail("Member not found.");
+  await db.members.update(id, { name: clean });
+}
+
+/**
+ * Financial rows only. `households`, `members` and `categories` are identity
+ * and configuration, not history — keeping them means the app is usable right
+ * after a wipe, with no onboarding step.
+ */
+const FINANCIAL_TABLES = [
+  "accounts",
+  "contacts",
+  "pixKeys",
+  "transactions",
+  "cards",
+  "cardPurchases",
+  "recurrings",
+  "loans",
+  "loanPayments",
+] as const;
+
+/**
+ * Clean start: wipes every financial row in a single atomic transaction and
+ * keeps the household, its members and the category dictionary.
+ *
+ * Deliberately never calls `db.delete()` — that fires the `populate` hook
+ * (infrastructure/db.ts) and would reseed the demo household instead of
+ * emptying the ledger. Returns the number of rows removed, so calling it on an
+ * already-clean ledger is a harmless no-op (0).
+ */
+export async function clearFinancialData(): Promise<number> {
+  let removed = 0;
+  await db.transaction(
+    "rw",
+    [...FINANCIAL_TABLES.map((name) => db.table(name)), db.households],
+    async () => {
+      for (const name of FINANCIAL_TABLES) {
+        const table = db.table(name);
+        removed += await table.count();
+        await table.clear();
+      }
+      // The ledger is no longer the fictional seed — the sidebar label follows.
+      await db.households.toCollection().modify({ demo: false });
+    }
+  );
+  return removed;
+}

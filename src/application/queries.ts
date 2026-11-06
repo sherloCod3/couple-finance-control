@@ -632,7 +632,13 @@ export async function getContacts(): Promise<ContactView[]> {
   }));
 }
 
-export async function getHousehold(): Promise<{ name: string; members: MemberLite[] }> {
+export async function getHousehold(): Promise<{ name: string; members: MemberLite[]; demo: boolean }> {
   const [h, m] = await Promise.all([db.households.toCollection().first(), db.members.toArray()]);
-  return { name: h?.name ?? "Household", members: m.map(toMember).map((x) => ({ id: x.id, name: x.name, color: x.color })) };
+  return {
+    name: h?.name ?? "Household",
+    members: m.map(toMember).map((x) => ({ id: x.id, name: x.name, color: x.color })),
+    // Absent on pre-flag rows: keep the existing label rather than silently
+    // relabelling data we cannot classify.
+    demo: h?.demo !== false,
+  };
 }

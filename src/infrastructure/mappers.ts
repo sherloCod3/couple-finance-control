@@ -38,6 +38,12 @@ export interface HouseholdRow {
   id: string;
   name: string;
   createdAt: number;
+  /**
+   * `true` while the household is the untouched fictional seed, `false` once
+   * the user cleared the ledger. Absent on rows written before the flag
+   * existed — readers must treat `undefined` as still demo (no silent relabel).
+   */
+  demo?: boolean;
 }
 
 export interface MemberRow {

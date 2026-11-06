@@ -65,7 +65,7 @@ export async function seedDemoData(db: DB): Promise<void> {
   let stamp = now - 40_000_000;
   const tick = (): number => (stamp += 60_000);
 
-  await db.households.add({ id: H, name: "Demo Household", createdAt: now });
+  await db.households.add({ id: H, name: "Demo Household", createdAt: now, demo: true });
 
   const members: MemberRow[] = [
     { id: ANA, householdId: H, name: "Ana", color: "#1D6B41", createdAt: now },
