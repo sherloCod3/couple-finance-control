@@ -466,7 +466,7 @@ export function Confirm({
   open,
   title,
   message,
-  confirmLabel = "Delete",
+  confirmLabel,
   onConfirm,
   onClose,
 }: {
@@ -483,7 +483,9 @@ export function Confirm({
       <p className="text-[13.5px] leading-relaxed text-inksoft">{message}</p>
       <div className="mt-5 flex justify-end gap-2">
         <Button variant="ghost" onClick={onClose}>{t.common_cancel}</Button>
-        <Button variant="danger" onClick={onConfirm}>{confirmLabel}</Button>
+        {/* Resolved here, not as a parameter default, so every caller that omits
+            it still gets a translated label. */}
+        <Button variant="danger" onClick={onConfirm}>{confirmLabel ?? t.common_delete}</Button>
       </div>
     </Modal>
   );

@@ -182,11 +182,12 @@ function HouseholdModal({
     if (busy) return;
     setBusy(true);
     try {
-      await uc.saveHousehold(name);
-      for (const m of household.members) {
-        const next = memberNames[m.id] ?? m.name;
-        if (next.trim() !== m.name) await uc.saveMember(m.id, next);
-      }
+      // One atomic write: a bad member name must not leave the household
+      // renamed (see saveHouseholdProfile).
+      await uc.saveHouseholdProfile({
+        name,
+        members: household.members.map((m) => ({ id: m.id, name: memberNames[m.id] ?? m.name })),
+      });
       toast.push("success", t.shell_householdSaved);
       onClose();
     } catch (e) {
@@ -292,7 +293,7 @@ function Shell() {
       await uc.clearFinancialData();
       window.setTimeout(() => window.location.reload(), 400);
     } catch {
-      toast.push("error", t.common_couldNotSave);
+      toast.push("error", t.shell_clearFailed);
     }
   };
 
@@ -382,7 +383,9 @@ function Shell() {
             </div>
             <div className="mt-2.5 flex items-center justify-between gap-2">
               <p className="text-[10.5px] leading-relaxed text-pine-300/90">
-                {household?.demo === false ? t.shell_localOnly : t.shell_demo}
+                {/* Rendered only once the live query resolves, so a cleared
+                    ledger never flashes the "demo" label on first paint. */}
+                {household && (household.demo === false ? t.shell_localOnly : t.shell_demo)}
               </p>
               <button
                 type="button"

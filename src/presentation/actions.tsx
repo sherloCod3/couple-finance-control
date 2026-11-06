@@ -96,9 +96,10 @@ export function TransactionModal({
   const effectiveTo = toAccountId || accounts.find((a) => a.id !== effectiveAccount)?.id || "";
   const effectiveBy = createdBy || members[0]?.id || "";
   const isEdit = Boolean(preset?.editTxId || preset?.editGroupId);
-  // Nothing to record into: an entry must belong to an account. Editing an
-  // existing entry always has one, so this only blocks new entries.
-  const needsAccount = accounts.length === 0 && !isEdit;
+  // `meta` is undefined until the live query resolves — that is "loading", not
+  // "no accounts". An entry must belong to an account, so a genuinely empty
+  // ledger blocks new entries; editing one always has an account.
+  const needsAccount = meta !== undefined && accounts.length === 0 && !isEdit;
 
   if (needsAccount) {
     return (
@@ -189,7 +190,10 @@ export function TransactionModal({
           options={[
             { value: "income", label: t.entry_income },
             { value: "expense", label: t.entry_expense },
-            { value: "transfer", label: t.entry_transfer },
+            // A transfer needs two accounts; offering it with one is a dead end.
+            ...(accounts.length > 1
+              ? [{ value: "transfer" as TxKindDraft, label: t.entry_transfer }]
+              : []),
             { value: "adjustment", label: t.entry_adjust },
           ]}
           value={kind}

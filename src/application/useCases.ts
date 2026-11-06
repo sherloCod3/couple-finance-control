@@ -644,23 +644,35 @@ export async function resetDemoData(): Promise<void> {
 }
 
 /**
- * Renames the household. The app models exactly one household per install
- * (the row is created by the seed), so this targets the single existing row
- * instead of taking an id.
+ * Renames the household and its members in one transaction.
+ *
+ * Deliberately one use case rather than `saveHousehold` + N × `saveMember`:
+ * two-phase writes let the household commit and a bad member name fail
+ * afterwards, leaving a half-applied edit that the UI reports as failed
+ * (ADR-001/009 — orchestration belongs in the application layer).
  */
-export async function saveHousehold(name: string): Promise<void> {
-  const clean = requireText(name, "Household name", 40);
+export async function saveHouseholdProfile(input: {
+  name: string;
+  members: { id: string; name: string }[];
+}): Promise<void> {
+  const name = requireText(input.name, "Household name", 40);
+  // Validate every name before touching the database.
+  const members = input.members.map((m) => ({
+    id: m.id,
+    name: requireText(m.name, "Member name", 30),
+  }));
+
   const household = await db.households.toCollection().first();
   if (!household) fail("Household not found.");
-  await db.households.update(household.id, { name: clean });
-}
 
-/** Renames a member. The avatar colour is derived at seed time and stays put. */
-export async function saveMember(id: string, name: string): Promise<void> {
-  const clean = requireText(name, "Member name", 30);
-  const member = await db.members.get(id);
-  if (!member) fail("Member not found.");
-  await db.members.update(id, { name: clean });
+  await db.transaction("rw", db.households, db.members, async () => {
+    await db.households.update(household.id, { name });
+    for (const member of members) {
+      const existing = await db.members.get(member.id);
+      if (!existing) fail("Member not found.");
+      await db.members.update(member.id, { name: member.name });
+    }
+  });
 }
 
 /**
