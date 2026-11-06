@@ -193,6 +193,25 @@ its members and the categories are kept, so only an account has to be created ag
 The household and both member names are editable from the sidebar card, so a real
 ledger never has to keep the demo names.
 
+## Versioning
+
+`package.json` is the single source of truth for the release version. Both Vite
+configs inject it as `__APP_VERSION__`, and the sidebar renders it next to the
+wordmark, so the label cannot drift from the manifest.
+
+The app version and the **Dexie schema version** are separate numbers and move
+independently:
+
+- **App version** — semantic, user-facing. Minor bump for a new capability,
+  patch for a fix. Tag the commit that carries the bump (`git tag v1.1.0`).
+- **Schema version** (`db.version(n)`) — only changes when an *index* changes,
+  because that is what needs a migration. A new plain field (like the household
+  `demo` flag) needs no bump: existing rows read as `undefined`, and the code
+  treats `undefined` as its default.
+
+So a release can bump the app version with no schema change at all. See
+`docs/domain/03-migrations-and-backup.md` before touching `db.version`.
+
 ## Security & public repository rules
 
 This repository is public. It never contains: real names tied to real finances, CPF/CNPJ,
