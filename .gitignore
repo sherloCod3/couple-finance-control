@@ -34,3 +34,9 @@ AGENTS.md
 SOUL.md
 skills-lock.json
 tasks/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
