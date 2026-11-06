@@ -332,7 +332,10 @@ function Shell() {
           <LogoMark size={30} />
           <div>
             <p className="font-display text-[15px] font-bold leading-tight text-pine-50">Couple Finance</p>
-            <p className="num text-[9px] uppercase tracking-[0.26em] text-pine-300">control</p>
+            <div className="flex items-baseline gap-1.5">
+              <p className="num text-[9px] uppercase tracking-[0.26em] text-pine-300">control</p>
+              <span className="num text-[9px] text-pine-400/70">v1.0</span>
+            </div>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
@@ -403,29 +406,28 @@ function Shell() {
               <LangBtn value="pt-BR" label="PT" current={lang} onSelect={setLang} />
             </div>
           </div>
-          <div className="flex items-center justify-between gap-2 px-1">
-            <button type="button" onClick={doExport} className="inline-flex items-center gap-1 text-[11px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50">
+          {/* Both footer rows wrap as whole links rather than breaking words:
+              pt-BR labels are wider than the 228px sidebar. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-1">
+            <button type="button" onClick={doExport} className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50">
               <IDownload size={12} /> {t.shell_export}
             </button>
-            <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1 text-[11px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50">
+            <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50">
               <UploadIcon size={12} /> {t.shell_import}
             </button>
           </div>
-          <div className="flex items-center justify-between px-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-1">
             <button
               type="button"
               onClick={() => setConfirmReset(true)}
-              className="text-[11px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50"
+              className="whitespace-nowrap text-[11px] font-medium text-pine-300 underline decoration-pine-700 underline-offset-2 transition-colors hover:text-pine-50"
             >
               {t.shell_resetDemo}
             </button>
-            <span className="num text-[10px] text-pine-400/70">v1.0</span>
-          </div>
-          <div className="px-1">
             <button
               type="button"
               onClick={() => setConfirmClear(true)}
-              className="text-[11px] font-medium text-rust-100/85 underline decoration-rust-600 underline-offset-2 transition-colors hover:text-rust-100"
+              className="shrink-0 whitespace-nowrap text-[11px] font-medium text-rust-100/85 underline decoration-rust-600 underline-offset-2 transition-colors hover:text-rust-100"
             >
               {t.shell_clearAll}
             </button>

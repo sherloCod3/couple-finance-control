@@ -267,7 +267,7 @@ const ptBR: typeof en = {
   shell_install: "Instalar app", shell_addEntry: "Novo lançamento",
   shell_resetDemo: "Restaurar dados demo", shell_resetTitle: "Restaurar dados demo?",
   shell_resetMsg: "Todos os lançamentos atuais serão substituídos pela família fictícia de demonstração.",
-  shell_clearAll: "Apagar todos os dados", shell_clearTitle: "Apagar todos os dados financeiros?",
+  shell_clearAll: "Apagar tudo", shell_clearTitle: "Apagar todos os dados financeiros?",
   shell_clearMsg:
     "Todas as contas, lançamentos, cartões, planos, empréstimos, chaves PIX e contatos serão apagados permanentemente. A família, os membros e as categorias permanecem. Não é possível desfazer — exporte um backup antes, se precisar. Será preciso criar uma conta antes de registrar novos lançamentos.",
   shell_clearConfirm: "Apagar tudo", shell_clearFailed: "Não foi possível apagar os dados.",
