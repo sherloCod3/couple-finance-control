@@ -15,7 +15,9 @@ import { todayISO } from "../domain/utils/dates";
 import {
   AmountInput,
   Button,
+  EmptyState,
   Field,
+  IWallet,
   Modal,
   Segmented,
   fmtCents,
@@ -94,6 +96,24 @@ export function TransactionModal({
   const effectiveTo = toAccountId || accounts.find((a) => a.id !== effectiveAccount)?.id || "";
   const effectiveBy = createdBy || members[0]?.id || "";
   const isEdit = Boolean(preset?.editTxId || preset?.editGroupId);
+  // Nothing to record into: an entry must belong to an account. Editing an
+  // existing entry always has one, so this only blocks new entries.
+  const needsAccount = accounts.length === 0 && !isEdit;
+
+  if (needsAccount) {
+    return (
+      <Modal open={open} onClose={onClose} title={t.entry_new}>
+        <EmptyState
+          icon={<IWallet size={22} />}
+          title={t.entry_needAccountTitle}
+          body={t.entry_needAccountBody}
+        />
+        <div className="mt-2 flex justify-end">
+          <Button variant="ghost" onClick={onClose}>{t.common_close}</Button>
+        </div>
+      </Modal>
+    );
+  }
 
   const submit = async (): Promise<void> => {
     if (busy) return;

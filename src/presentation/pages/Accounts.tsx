@@ -15,6 +15,7 @@ import {
   Badge,
   Button,
   Confirm,
+  EmptyState,
   Field,
   IKey,
   IPlus,
@@ -358,6 +359,20 @@ export default function Accounts() {
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {accounts.length === 0 && (
+          <section className="rounded-xl border border-line bg-surface shadow-sm sm:col-span-2 xl:col-span-3">
+            <EmptyState
+              icon={<IWallet size={22} />}
+              title={t.acct_noAccountsTitle}
+              body={t.acct_noAccountsBody}
+              action={
+                <Button onClick={() => setAccountModal({ open: true })}>
+                  <IPlus size={15} /> {t.acct_account}
+                </Button>
+              }
+            />
+          </section>
+        )}
         {accounts.map((a, i) => (
           <Reveal key={a.id} delay={i * 50}>
             <article className="group flex h-full flex-col rounded-xl border border-line bg-surface p-5 shadow-sm transition-shadow hover:shadow-md">
