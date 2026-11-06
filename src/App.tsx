@@ -334,7 +334,7 @@ function Shell() {
             <p className="font-display text-[15px] font-bold leading-tight text-pine-50">Couple Finance</p>
             <div className="flex items-baseline gap-1.5">
               <p className="num text-[9px] uppercase tracking-[0.26em] text-pine-300">control</p>
-              <span className="num text-[9px] text-pine-400/70">v1.0</span>
+              <span className="num text-[9px] text-pine-400/70">v{__APP_VERSION__}</span>
             </div>
           </div>
         </div>

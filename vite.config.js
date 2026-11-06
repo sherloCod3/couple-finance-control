@@ -6,6 +6,19 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 /**
+ * Single source of truth for the release version: `package.json`. It is injected
+ * as a compile-time constant so the version shown in the UI cannot drift from the
+ * manifest. Read through `import.meta.url` rather than a cwd-relative path, since
+ * the config is loaded from wherever the build was started.
+ *
+ * This is unrelated to the Dexie schema version (`db.version(2)`), which only
+ * moves when an index changes — see docs/domain/03-migrations-and-backup.md.
+ */
+const { version: appVersion } = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8")
+);
+
+/**
  * Injects the hashed build outputs into the service worker's precache list and
  * versions the cache from their content hash.
  *
@@ -60,6 +73,9 @@ export default defineConfig({
   // so an absolute "/assets/*" base would 404 under a sub-path and render a
   // blank page. See README "Deploying".
   base: "./",
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [react(), tailwindcss(), pwaPrecache()],
   server: {
     host: "0.0.0.0",

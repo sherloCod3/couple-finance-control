@@ -2,14 +2,23 @@
  * Shell integration: the sidebar labels a cleared ledger as local instead of
  * demo, the Accounts page offers a first-account CTA at zero, the clear action
  * actually wipes through its dialog, the entry form only disappears when there
- * is no account, and the household/member names are editable from the sidebar.
+ * is no account, the household/member names are editable from the sidebar, and
+ * the version shown is the manifest's rather than a hardcoded literal.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { db } from "../infrastructure/db";
 import * as uc from "../application/useCases";
 import { TOUR_KEY } from "./tour";
+
+// Read straight from the manifest so the assertion covers the whole chain
+// (package.json -> vite `define` -> UI) instead of restating the constant.
+const { version: manifestVersion } = JSON.parse(
+  readFileSync(path.resolve(process.cwd(), "package.json"), "utf8")
+);
 
 const TABLES = [
   "households",
@@ -80,6 +89,12 @@ const addAccount = (): Promise<string> =>
   });
 
 describe("shell after a clean start", () => {
+  it("shows the release version from package.json, not a hardcoded literal", () => {
+    render(<App />);
+
+    expect(screen.getByText(`v${manifestVersion}`)).toBeTruthy();
+  });
+
   it("stops calling the ledger fictional once the data is cleared", async () => {
     await uc.clearFinancialData();
     render(<App />);
