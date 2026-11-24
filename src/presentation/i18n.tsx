@@ -24,6 +24,7 @@ const en = {
   shell_install: "Install app", shell_addEntry: "New entry",
   shell_resetDemo: "Reset demo data", shell_resetTitle: "Reset demo data?",
   shell_resetMsg: "All current entries will be replaced by the fictional demo household.",
+  shell_resetFailed: "Could not reset the demo data.",
   shell_clearAll: "Clear all data", shell_clearTitle: "Delete all financial data?",
   shell_clearMsg:
     "Every account, transaction, card, plan, loan, PIX key and contact will be permanently deleted. The household, its members and the categories stay. This cannot be undone — export a backup first if you need one. You will need to add an account before recording new entries.",
@@ -267,6 +268,7 @@ const ptBR: typeof en = {
   shell_install: "Instalar app", shell_addEntry: "Novo lançamento",
   shell_resetDemo: "Restaurar dados demo", shell_resetTitle: "Restaurar dados demo?",
   shell_resetMsg: "Todos os lançamentos atuais serão substituídos pela família fictícia de demonstração.",
+  shell_resetFailed: "Não foi possível restaurar os dados demo.",
   shell_clearAll: "Apagar tudo", shell_clearTitle: "Apagar todos os dados financeiros?",
   shell_clearMsg:
     "Todas as contas, lançamentos, cartões, planos, empréstimos, chaves PIX e contatos serão apagados permanentemente. A família, os membros e as categorias permanecem. Não é possível desfazer — exporte um backup antes, se precisar. Será preciso criar uma conta antes de registrar novos lançamentos.",

@@ -680,7 +680,7 @@ export async function saveHouseholdProfile(input: {
  * and configuration, not history — keeping them means the app is usable right
  * after a wipe, with no onboarding step.
  */
-const FINANCIAL_TABLES = [
+export const FINANCIAL_TABLES = [
   "accounts",
   "contacts",
   "pixKeys",

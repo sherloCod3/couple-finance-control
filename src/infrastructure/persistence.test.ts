@@ -7,6 +7,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "./db";
 import * as uc from "../application/useCases";
 import { exportBackup, importBackup } from "../application/backup";
+import { getHousehold } from "../application/queries";
+import { FINANCIAL_TABLES } from "../application/useCases";
 
 beforeAll(async () => {
   await db.open(); // triggers the fictional demo seed on first open
@@ -317,6 +319,83 @@ describe("schema migrations (docs/domain/03-migrations-and-backup.md)", () => {
     for (const [table, paths] of Object.entries(queried)) {
       const indexes = db.table(table).schema.indexes.map((i) => i.keyPath);
       for (const p of paths) expect(indexes, `${table}.${p}`).toContain(p);
+    }
+  });
+});
+
+describe("clear / reset demo data (Section 07)", () => {
+  // Runs last in this file: it mutates the seeded state, then restores it via
+  // db.delete() + db.open() so nothing after it depends on a wiped ledger.
+  // FINANCIAL_TABLES is imported from useCases so the wipe test can never
+  // drift from the list clearFinancialData actually clears.
+  it("clearFinancialData wipes every financial table and keeps household, members and categories", async () => {
+    const removed = await uc.clearFinancialData();
+    expect(removed).toBeGreaterThan(0);
+    for (const name of FINANCIAL_TABLES) {
+      expect(await db.table(name).count(), name).toBe(0);
+    }
+    expect(await db.households.get("h-demo")).toMatchObject({ demo: false });
+    expect(await db.categories.count()).toBeGreaterThanOrEqual(9);
+    const hh = await getHousehold();
+    expect(hh.name).toBe("Demo Household");
+    expect(hh.members).toHaveLength(2);
+    expect(hh.demo).toBe(false);
+  });
+
+  it("clearing an already-clean ledger is a harmless no-op", async () => {
+    expect(await uc.clearFinancialData()).toBe(0);
+  });
+
+  it("the household stays usable right after a clear (a new account can be created)", async () => {
+    const id = await uc.saveAccount({
+      institution: "Banco Teste",
+      nickname: "New account",
+      type: "checking",
+      last4: null,
+      openingCents: 1000,
+      openingDate: "2025-01-01",
+    });
+    expect(await db.accounts.get(id)).toMatchObject({ householdId: "h-demo", archived: false });
+    await uc.deleteAccount(id); // no history → deletable again
+  });
+
+  it("resetDemoData (db.delete) reseeds the fictional ledger on reopen", async () => {
+    await db.delete();
+    await db.open(); // reload → fresh database → the populate hook fires again
+    expect(await db.transactions.count()).toBeGreaterThan(20);
+    expect(await db.households.get("h-demo")).toMatchObject({ demo: true });
+    expect((await getHousehold()).demo).toBe(true);
+  });
+
+  it("a renamed household is restored by the reseed", async () => {
+    await uc.saveHouseholdProfile({
+      name: "Renamed",
+      members: [
+        { id: "m-ana", name: "X" },
+        { id: "m-bruno", name: "Y" },
+      ],
+    });
+    await db.delete();
+    await db.open();
+    expect(await db.households.get("h-demo")).toMatchObject({ name: "Demo Household" });
+    expect(await db.members.get("m-ana")).toMatchObject({ name: "Ana" });
+  });
+
+  it("seed invariant: the car loan's schedule totals its principal (installments are payable)", async () => {
+    const loan = await db.loans.get("l-car");
+    const scheduleTotal = (loan?.schedule ?? []).reduce((a, s) => a + s.amountCents, 0);
+    expect(scheduleTotal).toBe(loan?.principalCents);
+  });
+
+  it("seed invariant: every seeded transaction sits on or after its account's opening date", async () => {
+    for (const account of await db.accounts.toArray()) {
+      const txs = await db.transactions.where("accountId").equals(account.id).toArray();
+      for (const tx of txs) {
+        expect(
+          tx.date >= account.openingDate,
+          `${account.id}: tx ${tx.date} predates opening ${account.openingDate}`
+        ).toBe(true);
+      }
     }
   });
 });
