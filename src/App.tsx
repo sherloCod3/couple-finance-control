@@ -281,9 +281,15 @@ function Shell() {
 
   const doReset = async (): Promise<void> => {
     setConfirmReset(false);
-    resetTour();
-    await uc.resetDemoData();
-    window.setTimeout(() => window.location.reload(), 400);
+    // Failure (e.g. another tab holding the IndexedDB connection blocks the
+    // delete) must not silently skip the reload — the tour flag stays as-is.
+    try {
+      await uc.resetDemoData();
+      resetTour();
+      window.setTimeout(() => window.location.reload(), 400);
+    } catch {
+      toast.push("error", t.shell_resetFailed);
+    }
   };
 
   /** Clean start: financial rows only — the couple and the categories stay. */

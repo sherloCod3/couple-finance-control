@@ -88,9 +88,12 @@ export async function seedDemoData(db: DB): Promise<void> {
   await db.categories.bulkAdd(categories);
 
   const accounts: AccountRow[] = [
-    { id: CHECKING, householdId: H, institution: "Banco Demo", nickname: "Checking", type: "checking", last4: "1234", openingBalanceCents: R(4200), openingDate: addDaysISO(today, -95), archived: false, createdAt: now, updatedAt: now },
-    { id: SAVINGS, householdId: H, institution: "Banco Demo", nickname: "Emergency fund", type: "savings", last4: "5678", openingBalanceCents: R(8500), openingDate: addDaysISO(today, -95), archived: false, createdAt: now, updatedAt: now },
-    { id: WALLET, householdId: H, institution: "DemoPay", nickname: "Wallet", type: "wallet", last4: null, openingBalanceCents: R(150), openingDate: addDaysISO(today, -60), archived: false, createdAt: now, updatedAt: now },
+    // Opening dates sit a full month before the oldest seeded transaction
+    // (day 5 of cur − 3), whatever day of the month "today" is — the ledger
+    // must never predate its own opening balance.
+    { id: CHECKING, householdId: H, institution: "Banco Demo", nickname: "Checking", type: "checking", last4: "1234", openingBalanceCents: R(4200), openingDate: day(1, -4), archived: false, createdAt: now, updatedAt: now },
+    { id: SAVINGS, householdId: H, institution: "Banco Demo", nickname: "Emergency fund", type: "savings", last4: "5678", openingBalanceCents: R(8500), openingDate: day(1, -4), archived: false, createdAt: now, updatedAt: now },
+    { id: WALLET, householdId: H, institution: "DemoPay", nickname: "Wallet", type: "wallet", last4: null, openingBalanceCents: R(150), openingDate: day(15, -4), archived: false, createdAt: now, updatedAt: now },
   ];
   await db.accounts.bulkAdd(accounts);
 
@@ -131,7 +134,10 @@ export async function seedDemoData(db: DB): Promise<void> {
   const firstDueYm = monthKey(addDaysISO(carStart, 30));
   const schedule = Array.from({ length: 36 }, (_, i) => ({
     dueDate: isoWithDay(addMonthsKey(firstDueYm, i), 20),
-    amountCents: R(642.85),
+    // 36 × 500 = the principal exactly. The domain has no interest concept,
+    // and `outstanding` is derived as principal − paid, so a schedule total
+    // above the principal would make the last installments unpayable.
+    amountCents: R(500),
   }));
   const carPayments: LoanPaymentRow[] = schedule
     .filter((s) => s.dueDate <= addDaysISO(today, -7))
